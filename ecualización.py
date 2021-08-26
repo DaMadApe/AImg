@@ -6,7 +6,7 @@ from histEq import histograma, acumulado, ecualizar
 
 img = ski.data.chelsea()
 img_hsv = rgb2hsv(img)
-img_v = img_hsv[:, : ,2]
+img_v = img_hsv[:, : ,2].copy()
 
 img_v_eq = ecualizar(img_v)
 img_hsv[:, : ,2] = img_v_eq
