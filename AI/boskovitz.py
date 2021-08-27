@@ -5,7 +5,7 @@ from skimage.exposure import histogram
 from skimage.io import imread
 from skimage.color import rgb2hsv
 
-path = "img/panda.jpg"
+path = "datos/panda.jpg"
 img = imread(path)
 img_hsv = rgb2hsv(img)
 img_v = img_hsv[:, :, 2]

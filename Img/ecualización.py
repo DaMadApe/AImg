@@ -4,7 +4,7 @@ from skimage.io import imread
 from skimage.color import rgb2hsv, hsv2rgb
 from histEq import histograma, acumulado, ecualizar
 
-img = ski.data.chelsea()
+img = ski.data.retina()
 img_hsv = rgb2hsv(img)
 img_v = img_hsv[:, : ,2].copy()
 

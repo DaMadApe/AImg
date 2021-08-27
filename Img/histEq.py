@@ -1,8 +1,5 @@
 import numpy as np
 
-
-# Usar int() para tener intervalos finitos
-
 # Histograma de imagen
 def histograma(img, res=255):
     hist = np.zeros(res+1)
