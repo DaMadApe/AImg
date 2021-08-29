@@ -5,4 +5,4 @@ def dist(x1, x2):
 
 U = []
 
-centers = 
+#centers = 
