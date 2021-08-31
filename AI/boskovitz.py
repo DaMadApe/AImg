@@ -35,6 +35,8 @@ ax1[1, 1].set_title('Histograma V')
 
 plt.tight_layout()
 
+
+
 # Fuzzy c means
 c = 3
 m = 2
@@ -50,13 +52,14 @@ clusters = []
 for cluster in u:
     clusters.append(np.reshape(cluster, np.shape(img_v)))
 
-# Función de membresía
+# Función de membresía para graficarla
 def mship(x, i):
     den = 0
     for k in range(c):
         den += abs(x-cntr[i])/abs(x-cntr[k])**(2/(m-1))
     return 1/den
 
+# Membresía por conjunto
 xs = np.linspace(0, 1, 100)
 mships = [[mship(x, i) for x in xs] for i in range(c)]
 
