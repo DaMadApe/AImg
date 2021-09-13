@@ -3,11 +3,21 @@ import skfuzzy as fuzzy
 from skimage import color
 
 
-def histograma(img_in, res=255):
+# def histograma(img_in, res=255):
+#     # Histograma normalizado de imagen de un canal
+#     scale = res/max(img_in.flatten())
+#     img = np.rint(scale*img_in)
+#     hist = np.zeros(res+1)
+    
+#     for i in range(img.shape[0]):
+#         for j in range(img.shape[1]):
+#             idx = int(img[i,j])
+#             hist[idx] += 1
+#     return hist/sum(hist)
+
+def histograma(img):
     # Histograma normalizado de imagen de un canal
-    scale = res/max(img_in.flatten())
-    img = np.rint(scale*img_in)
-    hist = np.zeros(res+1)
+    hist = np.zeros(256)
     
     for i in range(img.shape[0]):
         for j in range(img.shape[1]):
@@ -96,3 +106,16 @@ def loc_gen(img, step: int):
 
     #Esquina inferior derecha, caso mínimo
     yield np.s_[-(step + ext_f): , -(step + ext_c): ]
+
+
+# Limitar histograma al número promedio de pix por bin
+def clip_hist(hist):
+    avg = np.average(hist)
+    clip = np.copy(hist)
+    extra = 0
+    for i, bin in enumerate(hist):
+        if bin > avg:
+            extra += bin - avg
+            clip[i] = avg
+    clip += extra/len(clip)
+    return clip
