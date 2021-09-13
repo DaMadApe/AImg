@@ -1,14 +1,15 @@
 import numpy as np
 from numpy.core.shape_base import block
 import imglib as lib
-from skimage import io, data, color
+from skimage import io, data, color, transform
 import matplotlib.pyplot as plt
 
 
 # Exposure region determination, Saad et al, 2020 (2)
 def ERD(img, block_size):
     """
-    Recibe imagen, devuelve
+    Recibe imagen, devuelve arreglos booleanos de máscara
+    para cada región de exposición
     """
     #img_v = color.rgb2hsv(img)[:,:,2]
     # Promedio y desviación estándar de intensidad V
@@ -19,7 +20,8 @@ def ERD(img, block_size):
     low_lim = v_avg - v_std #(2,4)
 
     def entropy(img):
-        hist = lib.histograma(img)
+        hist, _ = np.histogram(img, bins=256,
+                               range=(0, 255), density=True)
         e = 0
         for i in range(256):
             p_i = hist[i]
@@ -65,6 +67,8 @@ def ERD(img, block_size):
     return UE, WE, OE
 
 
+# Nonlinaer Exposure Intensity based Modification Histogram Equalization
+# Saad et al, 2021 (1)
 def neimhe(img, block_size):
 
     # Obtener regiones de exposición
@@ -73,6 +77,7 @@ def neimhe(img, block_size):
     # Obtener subregiones de región WE
     sub_we = np.zeros(img.shape, dtype=np.uint8) + np.average(img)
     sub_we[WE] = img[WE]
+
     LWE, MWE, UWE = ERD(sub_we, block_size)
     # Limitar las subregiones calculadas a su respectiva región
     LWE = np.logical_and(LWE, WE)
@@ -83,7 +88,7 @@ def neimhe(img, block_size):
 
     # Función auxiliar para aplicar una escala a su respectiva región
     def apply_scale(img, R, scale):
-        ecu = lambda idx: scale[idx]
+        ecu = lambda idx: scale[int(idx)]
         ecu = np.vectorize(ecu)
         img[R] = ecu(img[R])
 
@@ -102,10 +107,9 @@ def neimhe(img, block_size):
         return (sum([hist[i] for i in range(k+1)]))**r
 
     cdf_ue_arr = np.array([cdf_ue(i) for i in range(256)])
-    print(cdf_ue_arr[-5:-1])
 
     cr = 0.5 * i_max #(1,6)
-    if cr < 51:
+    if cr < 51: #(1,4)
         ue_scale = (i_max + 51-cr - i_min)*cdf_ue_arr + i_min
     else:
         ue_scale = (i_max - i_min) * cdf_ue_arr + i_min
@@ -126,10 +130,9 @@ def neimhe(img, block_size):
         return (sum([hist[i] for i in range(k, 256)]))**r
 
     cdf_oe_arr = np.array([cdf_oe(i) for i in range(256)])
-    print(cdf_oe_arr[1:5])
 
     cr = i_min + 0.5 * (i_max - i_min) #(1,6)
-    if cr > 204:
+    if cr > 204: #(1,5)
         oe_scale = i_max - (i_max - (i_min - (cr-204)))*cdf_oe_arr
     else:
         oe_scale = i_max - (i_max - i_min) * cdf_oe_arr
@@ -138,9 +141,20 @@ def neimhe(img, block_size):
     apply_scale(img_eq, OE, oe_scale)
 
     # Procesar LWE (usar cdf de UE)
+    i_avg = np.average(img[LWE])
+    i_max = np.max(img[LWE])
     i_min = np.min(img[LWE])
+    hist, _ = np.histogram(img[LWE], bins=256,
+                           range=(0, 255), density=True)
+    hist = lib.clip_hist(hist)
 
-    lwe_scale = i_min + (ue_scale[-1] - i_min) * cdf_ue_arr
+    def cdf_lwe(k): #(1,1)
+        r = 0.5 + 0.5*(i_avg-i_min)/(i_max-i_min) #(1,3)
+        return (sum([hist[i] for i in range(k+1)]))**r
+
+    cdf_lwe_arr = np.array([cdf_lwe(i) for i in range(256)])
+
+    lwe_scale = i_min + (ue_scale[-1] - i_min) * cdf_lwe_arr#(1,7)
     apply_scale(img_eq, LWE, lwe_scale)
 
     # Procesar MWE
@@ -149,32 +163,52 @@ def neimhe(img, block_size):
                            range=(0, 255), density=True)
     hist = lib.clip_hist(hist)
 
+    # Esta sección es muy problemática, no sé si sea un error
+    # del paper o un error de transcripción que no encuentro
+    # Por eso vienen los ifs forzados con True
     def cdf_mwe(k): #(1,1)
-        if img_avg < 128:
+        if True: #img_avg < 128:
             return sum([hist[i] for i in range(k+1)])
         else:
             return sum([hist[i] for i in range(k, 256)])
     cdf_mwe_arr = np.array([cdf_mwe(i) for i in range(256)])
-    print(cdf_mwe_arr[-5:-1])
 
-    if img_avg >= 128:
-        mwe_scale = ue_scale[0] +(oe_scale[0] - ue_scale[-1])*cdf_mwe_arr
+    if True: #img_avg >= 128: #(1,7)
+        mwe_scale = ue_scale[0] +(oe_scale[-1] - ue_scale[0])*cdf_mwe_arr
     else:
-        mwe_scale = oe_scale[0] -(oe_scale[0] - ue_scale[-1])*cdf_mwe_arr
+        mwe_scale = ue_scale[0] -(oe_scale[-1] - ue_scale[0])*cdf_mwe_arr
 
     apply_scale(img_eq, MWE, mwe_scale)
 
-    # Procesar UWE (usar cdf de OE)
+    # Procesar UWE
+    i_avg = np.average(img[UWE])
     i_max = np.max(img[UWE])
+    i_min = np.min(img[UWE])
+    hist, _ = np.histogram(img[UWE], bins=256,
+                           range=(0, 255), density=True)
+    hist = lib.clip_hist(hist)
+
+    def cdf_uwe(k): #(1,1)
+        r = 0.5 + 0.5*(i_max-i_avg)/(i_max-i_min) #(1,3)
+        return (sum([hist[i] for i in range(k, 256)]))**r
+
+    cdf_uwe_arr = np.array([cdf_uwe(i) for i in range(256)])
     
-    uwe_scale = i_max - (i_max - oe_scale[0]) * cdf_oe_arr
+    uwe_scale = i_max - (i_max - oe_scale[0]) * cdf_uwe_arr #(1,7)
     apply_scale(img_eq, UWE, uwe_scale)
 
     return img_eq, (UE, WE, OE, LWE, MWE, UWE)
 
 
 
+"""
+Pruebas
+"""
 img = data.camera()
+# path = "datos/pulmones2.jpeg"
+# img = io.imread(path)
+# img = color.rgb2gray(img)*255
+# img = transform.rescale(img, 0.25) #Para imágenes muy grandes
 
 img_eq, regs = neimhe(img, 10)
 UE, WE, OE, LWE, MWE, UWE = regs
