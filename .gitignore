@@ -1,7 +1,7 @@
 datos/
-AI/sandb.ipynb
-Img/sandb.ipynb
-Img/__pycache__
-AI/__pycache__
+Img/__pycache__/
+AI/__pycache__/
 __pycache__/
 .vscode/
+AI/sandb.ipynb
+Img/sandb.ipynb
