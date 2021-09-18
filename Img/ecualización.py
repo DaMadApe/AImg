@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import skimage as ski
 from skimage.io import imread
 from skimage.color import rgb2hsv, hsv2rgb
-from histEq import histograma, acumulado, ecualizar, trans_v
+from imglib import histograma, acumulado, ecualizar, trans_v
 
 img = ski.data.retina()
 img_hsv = rgb2hsv(img)

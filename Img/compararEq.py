@@ -5,7 +5,7 @@ de librería
 import matplotlib.pyplot as plt
 import skimage as ski
 from skimage import io, data, color, exposure
-from histEq import histograma, acumulado, ecualizar
+from imglib import histograma, acumulado, ecualizar
 
 plt.close('all')
 
