@@ -4,14 +4,12 @@ from skimage import color
 
 """
 Librería de funciones para imágenes monocromáticas
+con escala de tonos 0-255
 """
 
-def histograma(img_in, res=255):
+def histograma(img):
     # Histograma normalizado de imagen de un canal
-    scale = res/max(img_in.flatten())
-    img = np.rint(scale*img_in)
-    hist = np.zeros(res+1)
-    
+    hist = np.zeros(256)
     for i in range(img.shape[0]):
         for j in range(img.shape[1]):
             idx = int(img[i,j])
@@ -37,25 +35,23 @@ def clip_hist(hist):
     return clip
 
 
-def ecu_hist(img, res=255, clipped=False):
+def ecu_hist(img, clipped=False):
     """
     Ecualización de histograma de un sólo canal
-    res: Subdivisiones del histograma
     """
-    hist = histograma(img, res=res)
+    hist = histograma(img)
     if clipped:
         hist = clip_hist(hist)
     acu = acumulado(hist)
-    max_val = max(img.flatten())
-    scale = res / max_val
     img_eq = np.zeros(img.shape)
     for i in range(img.shape[0]):
         for j in range(img.shape[1]):
-            idx = int(scale*img[i, j])
-            img_eq[i, j] = np.uint8(acu[idx]*max_val)
+            idx = int(img[i, j])
+            img_eq[i, j] = np.uint8(acu[idx]*255)
     return img_eq
 
-def ecu_fuzzy(img, singl, res=255):
+
+def ecu_fuzzy(img, singl):
     """
     Ecualización difusa de histograma
     singl: vector de singletons de conjuntos
@@ -74,11 +70,9 @@ def ecu_fuzzy(img, singl, res=255):
         ecufuzz[i] = np.dot(fuzzy_sets[:, i], singl)/sum(fuzzy_sets[:,i])
 
     img_eq = np.zeros(img.shape)
-    max_val = max(img.flatten())
-    scale = res / max_val
     for i in range(img.shape[0]):
         for j in range(img.shape[1]):
-            idx = int(scale*img[i, j]) #scale*
+            idx = int(img[i, j])
             img_eq[i, j] = np.uint8(ecufuzz[idx])
     return img_eq
 
