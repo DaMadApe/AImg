@@ -5,7 +5,7 @@ import numpy as np
 
 class Tablero():
 
-    def __init__(self, w=1, h=10):
+    def __init__(self, w=10, h=10):
         self.tablero=np.zeros((h,w), dtype=np.uint8)
         # Movimientos_válidos = 3-self.tablero
 

@@ -35,6 +35,12 @@ def clip_hist(hist):
             clip[i] = avg
     clip += extra/len(clip)
     return clip
+    
+
+def hist_stretch(img):
+    img_min = np.min(img)
+    img_max = np.max(img)
+    return (img-img_min) * 255/(img_max-img_min)
 
 
 def ecu_hist(img, res=255, clipped=False):
