@@ -7,8 +7,12 @@ import matplotlib.pyplot as plt
 
 def leer_imagen(txt_img, modelo):
     """
-    Separar una imagen de texto en un arreglo
-    de las letras encuadradas.
+    Producir el texto contenido en una imagen.
+    Devuelve una cadena con el contenido y un arreglo
+    con las dimensiones de cada letra en la imagen.
+
+    modelo: Función usada para identificar cada imagen
+    de letra con un caracter.
     """
     # Hacer binaria la imagen, sólo 0 o 255
     _, thresh_img = cv2.threshold(txt_img, 128, 255, cv2.THRESH_BINARY)
@@ -66,19 +70,25 @@ def leer_imagen(txt_img, modelo):
     for renglon in renglones:
         x, w = (0, 0) # Primer valor para medir distancia entre letras
         for caja in renglon:
-            prev_x = x + w
-            x, y, w, h = caja
             # Añadir espacio entre letras más separadas que el promedio
+            prev_x = x + w # Distancia entre letra anterior y actual
+            x, y, w, h = caja
             if (x - prev_x) > 1.5*spc_prom:
                 texto += " "
+
+            # Recortar la letra de la imagen
             img_letra = np.copy(txt_img[y:y+h, x:x+w])
-            # Hacer padding, o estandarizar el tamaño antes de mandárselo al modelo
-            # img_letra = pad(img_letra)
+
+            # Estandarizar tamaño antes de enviar a modelo
+            # Se añaden ceros hasta ser del tamaño de la letra más grande
+            img_letra = np.pad(img_letra, ((0, h_max-h), (0, w_max-w)))
+
+            # Identificar el char en la imagen
             letra = modelo(img_letra) # Aquí va el instar o el modelo que sea
             texto += letra
         texto += "\n"
 
-    return renglones, texto
+    return texto, renglones
 
 
 def modelo(img_letra):
@@ -87,19 +97,16 @@ def modelo(img_letra):
     el caracter al que corresponda.
 
     Aquí va el modelo instar o el modelo que usemos.
-
-    Ahorita el código no considera ninguna forma de
-    estandarización para la forma o tamaño de las
-    letras
     """
     return "a"
+
 
 
 # Importar la imagen en escala de grises
 txt_img = cv2.imread('datos/poema.bmp', 0)
 
 # Producir las dimensiones y el texto contenido
-cajas, texto = leer_imagen(txt_img, modelo)
+texto, cajas = leer_imagen(txt_img, modelo)
 
 print(texto)
 # Ahora mismo nomás sirve para ver que sí se
@@ -110,7 +117,6 @@ print(texto)
 letras = []
 for renglon in cajas:
     for caja in renglon:
-        # Encuadrar el contorno
         x, y, w, h = caja
         letra = txt_img[y:y+h, x:x+w]
         letras.append(letra)
@@ -120,6 +126,5 @@ for i in range(64):
     plt.subplot(8, 8, 1+i)
     plt.imshow(letras[i], cmap='gray')
     plt.axis('off')
-    plt.title(f"cd {i}")
 
 plt.show()
