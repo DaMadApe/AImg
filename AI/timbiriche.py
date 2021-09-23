@@ -2,11 +2,17 @@
 Juego de timbiriche con oponente automático
 """
 import numpy as np
+from modelo_cpu import modelo_random
 
 class Tablero():
-
-    def __init__(self, w=10, h=10):
+    """
+    Representación del tablero de juego, incluyendo métodos
+    para tirar en el tablero y 
+    """
+    def __init__(self, w=5, h=5):
         self.tablero=np.zeros((h,w), dtype=np.uint8)
+        self.w = w
+        self.h = h
         # Movimientos_válidos = 3-self.tablero
 
     def __call__(self, x, y):
@@ -16,12 +22,14 @@ class Tablero():
     def __repr__(self):
         # Para definir lo que devuelve print(self)
         # Se invierte eje vertical al imprimir por conveniencia
-        repr = ''
+        repr = '\n '
+        for i in range(self.tablero.shape[1]):
+            repr += str(i) + ' '
         sym = ['. ', '| ', '._', '|_']
-        for fil in self.tablero:
+        for j, fil in enumerate(self.tablero):
             for pos in fil[::-1]:
                 repr = sym[pos] + repr
-            repr = '\n' + repr
+            repr = f'\n{j}' + repr
         return repr
 
     def mover(self, x, y, mov):
@@ -30,14 +38,12 @@ class Tablero():
         y: Fila
         mov: Tiro, 1 para vertical, 2 para horizontal 
         """
-        if mov not in [1,2]:
-            raise ValueError('Movimientos válidos: 1, 2')
         pos = self.tablero[y, x]
         h, w = self.tablero.shape
         # Validación de tiro
-        cond = pos==0  # Caso: no hay líneas previas
+        cond = mov in [1,2]
         if x < w-1 and y < h-1:
-            cond |= (pos+mov==3)  # Caso: la línea previa es compatible
+            cond &= pos==0 or (pos+mov==3)
         else:
             # Puntos en la orilla del tablero están restringidos 
             if x == w-1:
@@ -47,7 +53,7 @@ class Tablero():
         if cond:
             self.tablero[y, x] += mov
             p = self.score(x, y, mov)
-            return 1+p # Turno completo, opcionalmente con puntos
+            return 1 + p # Turno completo + los puntos ganados
         return 0 # Turno incompleto
 
     def score(self, x, y, mov):
@@ -73,29 +79,77 @@ class Tablero():
 
 class Juego():
 
-    def __init__(self, tablero):
+    def __init__(self, tablero, modo, modelo_cpu=None, repr=True):
         # Puntajes de cada jugador
-        self.score_p1 = 0
-        self.score_p2 = 0
+        self.tablero = tablero
+        self.modelo = modelo_cpu
+        self.score = [0, 0]
+        if modo == 'CC': # Cpu vs Cpu
+            self.juego(self.tiro_cpu, self.tiro_cpu, repr)
+        elif modo == 'CP': # Cpu vs Persona
+            self.juego(self.tiro_cpu, self.tiro_persona, repr)
+        elif modo == 'PC': #Sólo cambia orden de tiro respecto a CP
+            self.juego(self.tiro_persona, self.tiro_cpu, repr)
+        elif modo == 'PP': # Persona vs persona
+            self.juego(self.tiro_persona, self.tiro_persona, repr)
+        else:
+            raise ValueError('Modos válidos: PP, CP, PC, CC')
 
-    
+    def tiro_cpu(self):
+        x, y, mov = self.modelo(self.tablero, self.score)
+        tiro = self.tablero.mover(x, y, mov)
+        return tiro
 
-tablero = Tablero()
-print(tablero)
-tablero.mover(2, 2, 2)
-tablero.mover(3, 2, 1)
-tablero.mover(2, 2, 1)
-#tablero.mover(2, 3, 2)
-tablero.mover(3, 3, 1)
-tablero.mover(2, 4, 2)
-tablero.mover(2, 3, 1)
+    def tiro_persona(self):
+        x, y, mov = map(int, input('Tiro (x,y,mov): ').split(','))
+        if x not in range(self.tablero.w) or y not in range(self.tablero.h):
+            print('Coordenadas inválidas')
+        elif mov not in [1,2]:
+            print('Movimientos válidos: 1, 2')
+        else:
+            tiro = self.tablero.mover(x, y, mov)
+            return tiro
+        return 0
 
-tablero.mover(0, 0, 1)
-tablero.mover(0, 1, 2)
-tablero.mover(0, 0, 2)
-#tablero.mover(1, 0, 1)
-tablero.mover(1, 1, 2)
-tablero.mover(2, 0, 1)
-tablero.mover(1, 0, 2)
+    def juego(self, tiro1, tiro2, repr):
+        # Calcular equivalente de un tablero lleno de líneas
+        h, w = self.tablero.tablero.shape
+        tablero_lleno = 3*(h-1)*(w-1) + 2*(w-1) + (h-1)
+        if repr:
+            print(self.tablero)
+            print("mov=1 para arriba, mov=2 para derecha")
+            print("Jugador 1")
+        while(np.sum(self.tablero.tablero) < tablero_lleno):
+            p1, p2 = (0, 0)
+            while(p1 != 1): # Sigue tirando si fue un tiro inválido o si anotó
+                p1 = tiro1()
+                if(p1 > 1):
+                    self.score[0] += p1-1
+                    if repr:
+                        print(self.tablero)
+                if np.sum(self.tablero.tablero) == tablero_lleno:
+                    break
+            if repr:
+                print(self.tablero)
+                print("Jugador 2")
 
-print(tablero)
+            while(p2 != 1):
+                p2 = tiro2()
+                if(p2 > 1):
+                    self.score[1] += p2-1
+                    if repr:
+                        print(self.tablero)
+                if np.sum(self.tablero.tablero) == tablero_lleno:
+                    break
+            if repr:
+                print(self.tablero)
+                print("Jugador 1")
+
+        if repr:
+            print('Fin de juego')
+            print(f'Puntaje final: {self.score[0]}-{self.score[1]}')
+
+
+
+tablero = Tablero(w=3, h=2)
+juego = Juego(tablero, modo='PP', modelo_cpu=modelo_random)
