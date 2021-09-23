@@ -15,8 +15,8 @@ class Tablero():
         self.h = h
         # Movimientos_válidos = 3-self.tablero
 
-    def __call__(self, x, y):
-        # Para que self(x, y) = self.tablero[y, x]
+    def __call__(self, y, x):
+        # Para que self(y, x) = self.tablero[y, x]
         return self.tablero[y, x]
 
     def __repr__(self):
@@ -32,7 +32,7 @@ class Tablero():
             repr = f'\n{j}' + repr
         return repr
 
-    def mover(self, x, y, mov):
+    def mover(self, y, x, mov):
         """
         x: Columna
         y: Fila
@@ -52,27 +52,27 @@ class Tablero():
                 cond &= mov==2 # Sólo se vale ir horizontal
         if cond:
             self.tablero[y, x] += mov
-            p = self.score(x, y, mov)
+            p = self.score(y, x, mov)
             return 1 + p # Turno completo + los puntos ganados
         return 0 # Turno incompleto
 
-    def score(self, x, y, mov):
+    def score(self, y, x, mov):
         """
-        Calcular puntaje correspondiente a un tiro (x,y,mov)
+        Calcular puntaje correspondiente a un tiro (y,x,mov)
         Revisar si la línea cierra algún cuadrado
         """
         p = 0
-        if mov==1:
+        if mov == 1:
             # pos%2 = (pos==1 or pos==3)
             # pos>1 = (pos==2 or pos==3)
-            if self(x-1, y)==3 and self(x-1, y+1)>1:
+            if self(y, x-1) == 3 and self(y+1, x-1) > 1:
                 p += 1
-            if self(x, y)==3 and self(x, y+1)>1 and self(x+1, y)%2:
+            if self(y, x) == 3 and self(y, x+1) > 1 and self(y, x+1) % 2:
                 p += 1
         else:
-            if self(x, y-1)==3 and self(x+1, y-1)%2:
+            if self(y, x-1) == 3 and self(y-1, x+1) % 2:
                 p += 1
-            if self(x, y)==3 and self(x+1, y)%2 and self(x, y+1)>1:
+            if self(y, x) == 3 and self(y, x+1) % 2 and self(y, x+1) > 1:
                 p += 1
         return p
 
@@ -96,18 +96,18 @@ class Juego():
             raise ValueError('Modos válidos: PP, CP, PC, CC')
 
     def tiro_cpu(self):
-        x, y, mov = self.modelo(self.tablero, self.score)
-        tiro = self.tablero.mover(x, y, mov)
+        y, x, mov = self.modelo(self.tablero, self.score)
+        tiro = self.tablero.mover(y, x, mov)
         return tiro
 
     def tiro_persona(self):
-        x, y, mov = map(int, input('Tiro (x,y,mov): ').split(','))
+        y, x, mov = map(int, input('Tiro (y,x,mov): ').split(','))
         if x not in range(self.tablero.w) or y not in range(self.tablero.h):
             print('Coordenadas inválidas')
         elif mov not in [1,2]:
             print('Movimientos válidos: 1, 2')
         else:
-            tiro = self.tablero.mover(x, y, mov)
+            tiro = self.tablero.mover(y, x, mov)
             return tiro
         return 0
 
