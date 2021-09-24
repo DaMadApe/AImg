@@ -1,18 +1,16 @@
 import numpy as np
 import cv2
+from numpy.core.fromnumeric import clip
 from skimage import io, data, util
 from skimage.filters import threshold_mean
 import matplotlib.pyplot as plt
 
 
-def leer_imagen(txt_img, modelo):
+def box_letras(txt_img):
     """
-    Producir el texto contenido en una imagen.
-    Devuelve una cadena con el contenido y un arreglo
-    con las dimensiones de cada letra en la imagen.
-
-    modelo: Función usada para identificar cada imagen
-    de letra con un caracter.
+    Producir las dimensiones de las cajas que encierran
+    cada una de las letras de la imagen, acomodado en un
+    arreglo 2D para representar renglones en la imagen
     """
     # Hacer binaria la imagen, sólo 0 o 255
     _, thresh_img = cv2.threshold(txt_img, 128, 255, cv2.THRESH_BINARY)
@@ -28,10 +26,7 @@ def leer_imagen(txt_img, modelo):
     # Sacar el cuadro que encierra cada contorno
     cajas = [cv2.boundingRect(c) for c in cnts]
 
-    # Dimensiones máximas y promedio de letra
-    w_max = max((c[2] for c in cajas))
-    h_max = max((c[3] for c in cajas))
-    w_prom = sum((c[2] for c in cajas)) / len(cajas)
+    # Altura promedio de letra
     h_prom = sum((c[3] for c in cajas)) / len(cajas)
 
     # Eliminar contornos muy pequeños (puntos, ruido, manchas)
@@ -57,6 +52,36 @@ def leer_imagen(txt_img, modelo):
     for i, renglon in enumerate(renglones):
         renglones[i] = sorted(renglon, key=lambda x: x[0])
 
+    return renglones
+
+
+# def clip_letras(txt_img):
+#     """
+#     Retornar una secuencia plana de las subimágenes
+#     correspondiente a cada letra
+#     """
+#     renglones = box_letras(txt_img)
+#     letras = []
+#     for renglon in renglones:
+#         for caja in renglon:
+#             x, y, w, h = caja
+#             letra = txt_img[y:y+h, x:x+w]
+#             letras.append(letra)
+#     return letras
+
+
+def leer_texto(txt_img, modelo=None):
+    """
+    Recortar cada una de las letras en la imagen acorde
+    a los renglones, y aplicar el modelo de lectura
+    para devolver una reconstrucción del texto original.
+    """
+    renglones = box_letras(txt_img)
+
+    # Dimensiones máximas de cada caja
+    w_max = max((max((c[2] for c in reng)) for reng in renglones))
+    h_max = max((max((c[3] for c in reng)) for reng in renglones))
+
     # Medir distancia promedio entre letras para identificar espacios
     spc_prom = 0
     for reng in renglones:
@@ -67,6 +92,9 @@ def leer_imagen(txt_img, modelo):
 
     # Construir cadena de resultado caracter por caracter
     texto = ""
+    # Incluir las letras recortadas para visualización
+    imgs_letras = []
+
     for renglon in renglones:
         x, w = (0, 0) # Primer valor para medir distancia entre letras
         for caja in renglon:
@@ -82,49 +110,53 @@ def leer_imagen(txt_img, modelo):
             # Estandarizar tamaño antes de enviar a modelo
             # Se añaden ceros hasta ser del tamaño de la letra más grande
             img_letra = np.pad(img_letra, ((0, h_max-h), (0, w_max-w)))
+            imgs_letras.append(img_letra)
 
             # Identificar el char en la imagen
-            letra = modelo(img_letra) # Aquí va el instar o el modelo que sea
+            if modelo is not None:
+                letra = modelo(img_letra) # Aquí va el instar o el modelo que sea
+            else:
+                letra = "a" # Prestalugar, sirve para ver la estructura de los renglones
+
             texto += letra
         texto += "\n"
 
-    return texto, renglones
+    return texto, imgs_letras
 
+
+
+def hardlim(x):
+    if x > 0:
+        return 1
+    return 0
 
 def modelo(img_letra):
-    """
-    Función que reciba una imagen de una letra y devuelva
-    el caracter al que corresponda.
-
-    Aquí va el modelo instar o el modelo que usemos.
-    """
-    return "a"
+    pass
 
 
+
+# Importar imagen con la fuente arial
+txt_img = cv2.imread('datos/arial_font.jpg', 0)
+
+# Entrenar el modelo
+#arial = clip_letras(arial_img)
+#train_set = 
 
 # Importar la imagen en escala de grises
-txt_img = cv2.imread('datos/poema.bmp', 0)
+#txt_img = cv2.imread('datos/poema.bmp', 0)
 
-# Producir las dimensiones y el texto contenido
-texto, cajas = leer_imagen(txt_img, modelo)
+
+# Leer el texto contenido
+texto, letras = leer_texto(txt_img)
 
 print(texto)
 # Ahora mismo nomás sirve para ver que sí se
 # estén acomodando bien las palabras y renglones
 
-
-# Dibujar algunas de las letras recortadas
-letras = []
-for renglon in cajas:
-    for caja in renglon:
-        x, y, w, h = caja
-        letra = txt_img[y:y+h, x:x+w]
-        letras.append(letra)
-
 plt.figure(figsize=(20, 20))
-for i in range(64):
+for i in range(min(len(letras), 64)):
     plt.subplot(8, 8, 1+i)
     plt.imshow(letras[i], cmap='gray')
-    plt.axis('off')
+    #plt.axis('off')
 
 plt.show()
