@@ -11,16 +11,14 @@ class Tablero():
     para tirar en el tablero y 
     """
 
-    def __init__(self, w=5, h=5):
-        self.tablero = np.zeros((h, w), dtype=np.uint8)
-        self.w = w
-        self.h = h
+    def __init__(self, n=5):
+        self.tablero = np.zeros((n, n), dtype=np.uint8)
+        self.n = n
         self.score = [0, 0]
         # Movimientos_válidos = 3-self.tablero
 
-    def __call__(self, y, x):
-        # Para que self(y, x) = self.tablero[y, x]
-        return self.tablero[y, x]
+    def __getitem__(self, idx):
+        return self.tablero[idx]
 
     def __repr__(self):
         # Para definir lo que devuelve print(self)
@@ -36,17 +34,16 @@ class Tablero():
         return repr
 
     def validarTiro(self, y, x, mov):
-        pos = self.tablero[y, x]
-        h, w = self.tablero.shape
+        pos = self[y, x]
         # Validación de tiro
         cond = mov in [1, 2]
-        if x < w-1 and y < h-1:
-            cond &= pos == 0 or (pos+mov == 3)
+        if x < self.w-1 and y < self.h-1:
+            cond &= (pos == 0 or (pos+mov == 3))
         else:
             # Puntos en la orilla del tablero están restringidos
-            if x == w-1:
+            if x == self.w-1:
                 cond &= mov == 1  # Sólo se vale ir vertical
-            if y == h-1:
+            if y == self.h-1:
                 cond &= mov == 2  # Sólo se vale ir horizontal
         return cond
 
@@ -71,24 +68,22 @@ class Tablero():
         if mov == 1:
             # pos%2 = (pos==1 or pos==3)
             # pos>1 = (pos==2 or pos==3)
-            if self(y, x-1) == 3 and self(y+1, x-1) > 1:
+            if self[y, x-1] == 3 and self[y+1, x-1] > 1:
                 p += 1
-            if self(y, x) == 3 and self(y, x+1) > 1 and self(y, x+1) % 2:
+            if self[y, x] == 3 and self[y, x+1] > 1 and self[y, x+1] % 2:
                 p += 1
         else:
-            if self(y, x-1) == 3 and self(y-1, x+1) % 2:
+            if self[y, x-1] == 3 and self[y-1, x+1] % 2:
                 p += 1
-            if self(y, x) == 3 and self(y, x+1) % 2 and self(y, x+1) > 1:
+            if self[y, x] == 3 and self[y, x+1] % 2 and self[y, x+1] > 1:
                 p += 1
         return p
 
 
 class Timbiriche(Game):
 
-    def __init__(self, tablero):
-        self.tablero = tablero
-        self.h = tablero.h
-        self.w = tablero.w
+    def __init__(self, n):
+        self.n
 
     def getInitBoard(self):
         """
@@ -96,7 +91,7 @@ class Timbiriche(Game):
             startBoard: a representation of the board (ideally this is the form
                         that will be the input to your neural network)
         """
-        tablero = np.zeros((self.h, self.w), dtype=np.uint8)
+        tablero = np.zeros((self.n, self.n), dtype=np.uint8)
         return tablero
 
     def getBoardSize(self):
@@ -104,19 +99,14 @@ class Timbiriche(Game):
         Returns:
             (x,y): a tuple of board dimensions
         """
-        return (self.h, self.w)
+        return (self.n, self.n)
 
     def getActionSize(self):
         """
         Returns:
             actionSize: number of all possible actions
         """
-        # valid_movs = 3 - self.tablero.tablero
-        # size = sum([2 if m==3 else 0 for m in valid_movs.flatten()])
-        # size += sum([1 if m in [1,2] else 0 for m in valid_movs.flatten()])
-        # size += - self.h - self.w
-
-        size = 2 * (self.h-1) * (self.w-1) + self.h + self.w
+        size = 2*(self.n-1)**2 + 2*self.n
         return size
 
     def getNextState(self, board, player, action):
@@ -130,14 +120,14 @@ class Timbiriche(Game):
             nextBoard: board after applying action
             nextPlayer: player who plays in the next turn (should be -player)
         """
-        nextBoard = Tablero(self.w, self.h)
-        nextBoard.tablero = board.tablero.copy()
+        nextBoard = Tablero(self.n)
+        nextBoard.tablero = np.copy(board)
         p = nextBoard.move(action)
         if p==1: # Tiro válido sin anotaciones
             nextPlayer = -player
         else:
             nextPlayer = player
-        return nextBoard, nextPlayer
+        return nextBoard.tablero, nextPlayer
 
     def getValidMoves(self, board, player):
         """
@@ -150,9 +140,11 @@ class Timbiriche(Game):
                         moves that are valid from the current board and player,
                         0 for invalid moves
         """
+        tablero = Tablero(self.n)
+        tablero.tablero = np.copy(board)
         validMoves = []
-        for y, row in enumerate(board.tablero):
-            for x, pos in enumerate(row):
+        for y in range(self.n):
+            for x in range(self.n):
                 validMoves.append(board.validar(y,x,1))
                 validMoves.append(board.validar(y,x,2))
 
@@ -168,10 +160,9 @@ class Timbiriche(Game):
             r: 0 if game has not ended. 1 if player won, -1 if player lost,
                small non-zero value for draw.
         """
-        tablero_lleno = 3*(self.h-1)*(self.w-1) + 2*(self.w-1) + (self.h-1)
-        np.sum(self.tablero.tablero) == tablero_lleno
-        
-        pass
+        tablero_lleno = 3*(self.n-1)**2 + 3*(self.n-1)
+        r = np.sum(self.tablero.tablero) == tablero_lleno
+        return r
 
     def getCanonicalForm(self, board, player):
         """
@@ -187,7 +178,7 @@ class Timbiriche(Game):
                             board as is. When the player is black, we can invert
                             the colors and return the board.
         """
-        return board.tablero
+        return board
 
     def getSymmetries(self, board, pi):
         """
@@ -212,7 +203,7 @@ class Timbiriche(Game):
             boardString: a quick conversion of board to a string format.
                          Required by MCTS for hashing.
         """
-        return board.tablero.toString()
+        return board.toString()
 
 
 class ModeloNeuronal(NeuralNet):
