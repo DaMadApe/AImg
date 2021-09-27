@@ -1,15 +1,15 @@
 import logging
 
-import coloredlogs
+#import coloredlogs
 
 from Coach import Coach
-from othello.OthelloGame import OthelloGame as Game
-from othello.pytorch.NNet import NNetWrapper as nn
+from Timbiriche import Timbiriche as Game
+from Timbiriche import ModeloNeuronal as nn
 from utils import *
 
 log = logging.getLogger(__name__)
 
-coloredlogs.install(level='INFO')  # Change this to DEBUG to see more info.
+#coloredlogs.install(level='INFO')  # Change this to DEBUG to see more info.
 
 args = dotdict({
     'numIters': 1000,

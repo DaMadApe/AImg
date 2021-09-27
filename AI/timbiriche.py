@@ -32,29 +32,32 @@ class Tablero():
             repr = f'\n{j}' + repr
         return repr
 
+    def validarTiro(self, y, x, mov):
+        pos = self.tablero[y, x]
+        h, w = self.tablero.shape
+        # Validación de tiro
+        cond = mov in [1, 2]
+        if x < w-1 and y < h-1:
+            cond &= pos == 0 or (pos+mov == 3)
+        else:
+            # Puntos en la orilla del tablero están restringidos
+            if x == w-1:
+                cond &= mov == 1  # Sólo se vale ir vertical
+            if y == h-1:
+                cond &= mov == 2  # Sólo se vale ir horizontal
+        return cond
+
     def mover(self, y, x, mov):
         """
         x: Columna
         y: Fila
         mov: Tiro, 1 para vertical, 2 para horizontal 
         """
-        pos = self.tablero[y, x]
-        h, w = self.tablero.shape
-        # Validación de tiro
-        cond = mov in [1,2]
-        if x < w-1 and y < h-1:
-            cond &= pos==0 or (pos+mov==3)
-        else:
-            # Puntos en la orilla del tablero están restringidos 
-            if x == w-1:
-                cond &= mov==1 # Sólo se vale ir vertical
-            if y == h-1:
-                cond &= mov==2 # Sólo se vale ir horizontal
-        if cond:
+        if self.validarTiro(y, x, mov):
             self.tablero[y, x] += mov
             p = self.score(y, x, mov)
-            return 1 + p # Turno completo + los puntos ganados
-        return 0 # Turno incompleto
+            return 1 + p  # Turno completo + los puntos ganados
+        return 0  # Turno incompleto
 
     def score(self, y, x, mov):
         """
