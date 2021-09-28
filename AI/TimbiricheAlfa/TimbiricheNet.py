@@ -1,9 +1,10 @@
+import os
 import torch
 from torch import nn
 
 
 class TimbiricheNet(nn.Module):
-    def __init__(self):
+    def __init__(self, args):
         super(TimbiricheNet, self).__init__()
         self.nn_part1 = nn.Sequential([
             nn.Conv2d(),
@@ -14,10 +15,4 @@ class TimbiricheNet(nn.Module):
         pass
 
     def predict(self, board):
-        pass
-
-    def save(folder, filename):
-        pass
-
-    def load(folder, filename):
         pass
