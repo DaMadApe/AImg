@@ -1,0 +1,68 @@
+<MainContainer>:
+    BoxLayout:
+        orientation: 'vertical'
+
+        BoxLayout:
+            height: 0.5
+
+        BoxLayout:
+            padding: [20, 40, 20, 40]
+            spacing: 20
+            
+            Button:
+                text: 'Cargar imagen...'
+                size_hint_x: 0.4
+                on_press: root.callback_load
+            Button:
+                text: 'HistEq'
+                size_hint_x: 0.2
+            Button:
+                text: 'SAUCE'
+                size_hint_x: 0.2
+            Button:
+                text: 'M3'
+                size_hint_x: 0.2
+
+        Image:
+            id: imgWidget
+            source: 'datos/galleta.jpg'
+            width: 1000
+            allow_stretch: True
+            keep_ratio: True
+
+        Slider:
+            id: viewSlider
+            min: 0
+            max: 100
+            value: 3
+            on_value: root.slideCompare(*args)
+        
+        Label:
+            id: sliderVal
+            text: '0'
+
+        Label:
+            id: pathLabel
+            text: ''
+
+
+<Load_file_popup>:
+    title: "Select File"
+    size_hint: .9, .9
+    BoxLayout:
+        orientation: "vertical"
+        FileChooser:
+            id: filechooser   
+            FileChooserIconLayout
+
+        BoxLayout:
+            size_hint: (1, 0.1)
+            pos_hint: {'center_x': .5, 'center_y': .5}
+            Button:
+                text: "Cancel"
+                on_release: root.dismiss()
+            Button:
+                text: "Load"
+                on_release: root.load(filechooser.selection)
+                id: ldbtn
+                disabled: True if filechooser.selection==[] else False
