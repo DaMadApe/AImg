@@ -4,10 +4,7 @@
         # size_hint_y: None
 
         BoxLayout:
-            height: 0.5
-
-        BoxLayout:
-            padding: [20, 40, 20, 40]
+            padding: [20, 60, 20, 60]
             spacing: 20
             
             Button:
@@ -18,25 +15,28 @@
                 id: btn1
                 text: 'HistEq'
                 size_hint_x: 0.2
-                # disabled: True
+                disabled: True
                 on_release: root.selecEcualizador(0)
             Button:
                 id: btn2
-                text: 'SAUCE'
+                text: 'CLAHE'
                 size_hint_x: 0.2
-                # disabled: True
+                disabled: True
                 on_release: root.selecEcualizador(1)
             Button:
                 id: btn3
                 text: 'M3'
                 size_hint_x: 0.2
-                # disabled: True
+                disabled: True
                 on_release: root.selecEcualizador(2)
+
+        Label:
+            id: pathLabel
+            text: ''
 
         TexView:
             id: imgWidget
             source: ' '
-            # 'datos/galleta.jpg'
 
         Slider:
             id: viewSlider
@@ -44,32 +44,26 @@
             max: 100
             value: 3
             on_value: root.slideCompare(*args)
-            # disabled: True
-        
-        Label:
-            id: sliderVal
-            text: '0'
-
-        Label:
-            id: pathLabel
-            text: ''
+            disabled: True
 
         Button:
             id: btnSave
+            size_hint_x: 0.3
+            size_hint_y: 0.3
             text: 'Guardar imagen...'
-            on_release: root.save()
+            on_release: root.save_popup()
             disabled: True
 
 
 <Load_file_popup>:
-    title: "Select File"
+    title: "Cargar imagen"
     size_hint: .9, .9
     BoxLayout:
         orientation: "vertical"
-        FileChooser:
+        FileChooserListView:
             id: filechooser
             path: "datos/"
-            FileChooserIconLayout
+            # FileChooserIconLayout
 
         BoxLayout:
             size_hint: (1, 0.1)
@@ -83,4 +77,32 @@
                 id: ldbtn
                 disabled: True if filechooser.selection==[] else False
 
-# <TexView>
+
+<Save_file_popup>:
+    title: "Guardar imagen"
+    size_hint: .9, .9
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserListView:
+            id: sfilechooser
+            path: "datos/"
+            on_selection: text_input.text = self.selection and self.selection[0] or ''
+
+        TextInput:
+            id: text_input
+            size_hint_y: None
+            height: 30
+            multiline: False
+
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Cancel"
+                on_release: root.dismiss()
+
+            Button:
+                text: "Save"
+                on_release: root.save(sfilechooser.path, text_input.text)

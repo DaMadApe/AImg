@@ -12,6 +12,7 @@ from kivy.graphics.texture import Texture
 from kivy.properties import ObjectProperty
 from kivy.uix.popup import Popup
 # Módulos adicionales
+import os
 import cv2
 import numpy as np
 import imglib as lib
@@ -21,32 +22,36 @@ class MainContainer(BoxLayout):
     
     def __init__(self, **kwargs):
         super(MainContainer, self).__init__(**kwargs)
-        self.img = None
-        self.proc = None
-        self.ids.btn1.enabled = False
-        self.ids.btn2.enabled = False
-        self.ids.btn3.enabled = False
 
     def slideCompare(self, instance, val):
-        self.ids.sliderVal.text = "% d"% val
         self.ids.imgWidget.slideView(val)
 
     def load_popup(self):
         self.load_file_popup = Load_file_popup(load=self.load)
         self.load_file_popup.open()
 
+    def save_popup(self):
+        self.save_file_popup = Save_file_popup(save=self.save)
+        self.save_file_popup.open()
+
     def load(self, selection):
         self.file_path = str(selection[0])
         self.ids.pathLabel.text = self.file_path
         self.load_file_popup.dismiss()
-        self.ids.btn1.enabled = True
-        self.ids.btn2.enabled = True
-        self.ids.btn3.enabled = True
+        self.ids.btn1.disabled = False
+        self.ids.btn2.disabled = False
+        self.ids.btn3.disabled = False
         self.ids.imgWidget.cargarImagen(self.file_path)
+
+    def save(self, path, filename):
+        save_path = os.path.join(path, filename)
+        self.save_file_popup.dismiss()
+        self.ids.imgWidget.guardarImagen(save_path)
 
     def selecEcualizador(self, n):
         func = [lib.ecu_hist, lib.clahe, lib.m3][n]
-        self.ids.viewSlider.enabled = True
+        self.ids.viewSlider.disabled = False
+        self.ids.btnSave.disabled = False
         self.ids.imgWidget.ecualizar(func)
 
 
@@ -69,11 +74,6 @@ class TexView(Layout):
     def update(self):
         self.cb.ask_update()
 
-    # def update_rect(self, *args):
-    #     self.canvas.clear()
-    #     self.rect.pos = self.pos
-    #     self.rect.size = self.size
-
     def cargarImagen(self, path):
         img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
         print(img.shape)
@@ -89,7 +89,9 @@ class TexView(Layout):
                                   pos=(self.center_x -self.width/2,
                                        self.center_y -self.height/2))
             self.cb = Callback()
-            # self.bind(pos=self.update_rect, size=self.update_rect)
+
+    def guardarImagen(self, path):
+        cv2.imwrite(path, cv2.flip(self.img_eq, 0))
 
     def ecualizar(self, ecu_fun):
         self.img_eq = ecu_fun(self.img)
@@ -97,8 +99,8 @@ class TexView(Layout):
 
     def slideView(self, n):
         idx = int(self.img.shape[1] * n/100)
-        self.img_canvas[:,:idx,:] = self.img[:,:idx,:]
-        self.img_canvas[:,idx:,:] = self.img_eq[:,idx:,:]
+        self.img_canvas[:,idx:,:] = self.img[:,idx:,:]
+        self.img_canvas[:,:idx,:] = self.img_eq[:,:idx,:]
         self.tex.blit_buffer(self.img_canvas.flatten(), colorfmt='bgr', bufferfmt='ubyte')
         self.update()
     
@@ -108,6 +110,10 @@ class TexView(Layout):
 
 class Load_file_popup(Popup):
     load = ObjectProperty()
+
+class Save_file_popup(Popup):
+    save = ObjectProperty()
+
 
 
 class BetterImgApp(App):
