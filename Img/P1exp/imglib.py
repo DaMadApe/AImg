@@ -1,4 +1,5 @@
 import numpy as np
+import cv2
 
 """
 Archivo de funciones redactadas para manipular
@@ -13,6 +14,14 @@ def img_as_uint8(img_in):
     img_out = np.rint(scale*img_out)
     img_out = np.uint8(img_out)
     return img_out
+
+
+def trans_v(img, trans):
+    img_hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    v_eq = trans(np.copy(img_hsv[:,:,2]))
+    img_hsv[:,:,2] = v_eq
+    img_trans = cv2.cvtColor(img_hsv, cv2.COLOR_HSV2BGR)
+    return img_trans
 
 
 def histograma(img_in, res=255):
@@ -31,19 +40,6 @@ def histograma(img_in, res=255):
 def acumulado(xs):
     # Acumular un arreglo en otro de igual longitud
     return [sum(xs[0:i+1]) for i in range(len(xs))]
-
-
-# Limitar histograma al número promedio de pix por bin
-def clip_hist(hist):
-    avg = np.average(hist)
-    clip = np.copy(hist)
-    extra = 0
-    for i, bin in enumerate(hist):
-        if bin > avg:
-            extra += bin - avg
-            clip[i] = avg
-    clip += extra/len(clip)
-    return clip
     
 
 def hist_stretch(img):
@@ -69,32 +65,15 @@ def ecu_hist(img, res=255):
     return img_eq
 
 
+def clahe(img):
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+    img_eq = trans_v(img, clahe.apply)
+    return img_eq
+    
+
+def ecu_hist(img):
+    return trans_v(img, cv2.equalizeHist)
 
 
-def loc_gen(img, step: int):
-    """
-    Generador de secciones cuadradas para indexar imagen
-    Genera rebanadas np._s para usarlos como img[loc]
-    shape: Tamaño total a subdividir
-    step: Lado de sección cuadrada
-    """
-    fil = int(img.shape[0]/step)
-    col = int(img.shape[1]/step)
-
-    for f in range(fil-1):
-        for c in range(col-1):
-            yield np.s_[step*f: step*(f+1), step*c: step*(c+1)]
-
-    #Bloques al margen cubren el sobrante del paso
-    ext_f = int(img.shape[0])%step
-    ext_c = int(img.shape[1])%step
-    #Recorrido de bloques al margen derecho
-    for f in range(fil-1):
-        yield np.s_[step*f: step*(f+1), -(step + ext_c): ]
-
-    #Recorrido de bloques al margen inferior
-    for c in range(col-1):
-        yield np.s_[-(step + ext_f): , step*c: step*(c+1)]
-
-    #Esquina inferior derecha, caso mínimo
-    yield np.s_[-(step + ext_f): , -(step + ext_c): ]
+def m3(img):
+    return img

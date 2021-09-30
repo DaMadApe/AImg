@@ -1,6 +1,7 @@
 <MainContainer>:
     BoxLayout:
         orientation: 'vertical'
+        # size_hint_y: None
 
         BoxLayout:
             height: 0.5
@@ -14,19 +15,25 @@
                 size_hint_x: 0.4
                 on_release: root.load_popup()
             Button:
+                id: btn1
                 text: 'HistEq'
                 size_hint_x: 0.2
-                disabled: True
+                # disabled: True
+                on_release: root.selecEcualizador(0)
             Button:
+                id: btn2
                 text: 'SAUCE'
                 size_hint_x: 0.2
-                disabled: True
+                # disabled: True
+                on_release: root.selecEcualizador(1)
             Button:
+                id: btn3
                 text: 'M3'
                 size_hint_x: 0.2
-                disabled: True
+                # disabled: True
+                on_release: root.selecEcualizador(2)
 
-        Image:
+        TexView:
             id: imgWidget
             source: ' '
             # 'datos/galleta.jpg'
@@ -37,7 +44,7 @@
             max: 100
             value: 3
             on_value: root.slideCompare(*args)
-            disabled: True
+            # disabled: True
         
         Label:
             id: sliderVal
@@ -46,6 +53,12 @@
         Label:
             id: pathLabel
             text: ''
+
+        Button:
+            id: btnSave
+            text: 'Guardar imagen...'
+            on_release: root.save()
+            disabled: True
 
 
 <Load_file_popup>:
@@ -69,3 +82,5 @@
                 on_release: root.load(filechooser.selection)
                 id: ldbtn
                 disabled: True if filechooser.selection==[] else False
+
+# <TexView>
