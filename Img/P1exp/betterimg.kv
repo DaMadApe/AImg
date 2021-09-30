@@ -12,23 +12,24 @@
             Button:
                 text: 'Cargar imagen...'
                 size_hint_x: 0.4
-                on_press: root.callback_load
+                on_release: root.load_popup()
             Button:
                 text: 'HistEq'
                 size_hint_x: 0.2
+                disabled: True
             Button:
                 text: 'SAUCE'
                 size_hint_x: 0.2
+                disabled: True
             Button:
                 text: 'M3'
                 size_hint_x: 0.2
+                disabled: True
 
         Image:
             id: imgWidget
-            source: 'datos/galleta.jpg'
-            width: 1000
-            allow_stretch: True
-            keep_ratio: True
+            source: ' '
+            # 'datos/galleta.jpg'
 
         Slider:
             id: viewSlider
@@ -36,6 +37,7 @@
             max: 100
             value: 3
             on_value: root.slideCompare(*args)
+            disabled: True
         
         Label:
             id: sliderVal
@@ -52,7 +54,8 @@
     BoxLayout:
         orientation: "vertical"
         FileChooser:
-            id: filechooser   
+            id: filechooser
+            path: "datos/"
             FileChooserIconLayout
 
         BoxLayout:
