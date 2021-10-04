@@ -2,10 +2,9 @@ import os
 import torch
 from torch import nn, optim
 import torch.nn.functional as F
-from torch.nn.modules.pooling import MaxPool2d
 from tqdm import tqdm
 import numpy as np
-
+# Módulos del proyecto
 from NeuralNet import NeuralNet
 from utils import *
 
@@ -58,12 +57,33 @@ class TimbiricheNet(nn.Module):
 
     def forward(self, s):
         s = self.convnet(s)
-
         pi = self.p_head(s)
         v = self.v_head(s)
         return pi, v
 
+
+class ModeloNeuronal(NeuralNet):
+    """
+    Este es un envoltorio de la clase TimbiricheNet, que
+    sirve de interfaz entre el modelo y el resto del
+    programa. Esta clase sigue los prototipos de la clase
+    NeuralNet, y de ahí vienen las siguientes descripciones
+    """
+    def __init__(self, game):
+        self.net = TimbiricheNet(game, args)
+
     def train(self, examples):
+        """
+        This function trains the neural network with examples obtained from
+        self-play.
+
+        Input:
+            examples: a list of training examples, where each example is of form
+                      (board, pi, v). pi is the MCTS informed policy vector for
+                      the given board, and v is its value. The examples has
+                      board in its canonical form.
+        """
+        self.net.train()
         optimizer = optim.Adam(self.net.parameters())
         for epoch in range(args.epochs):
             print(f'--- Época: {epoch+1} ---')
@@ -112,41 +132,6 @@ class TimbiricheNet(nn.Module):
         return torch.sum((targets - outputs.view(-1)) ** 2) / targets.size()[0]
 
     def predict(self, board):
-        board = torch.FloatTensor(board.astype(torch.float64))
-        if args.cuda:
-            # Acomodar el tensor eficientemente en memoria de GPU
-            board = board.contiguous().cuda()
-        board = board.view(1, self.n, self.n)
-        self.nnet.eval()
-
-        with torch.no_grad():
-            pi, v = self.nnet(board)
-
-
-class ModeloNeuronal(NeuralNet):
-    """
-    Este es un envoltorio de la clase TimbiricheNet, que
-    sirve de interfaz entre el modelo y el resto del
-    programa. Esta clase sigue los prototipos de la clase
-    NeuralNet, y de ahí vienen las siguientes descripciones
-    """
-    def __init__(self, game):
-        self.net = TimbiricheNet(game, args)
-
-    def train(self, examples):
-        """
-        This function trains the neural network with examples obtained from
-        self-play.
-
-        Input:
-            examples: a list of training examples, where each example is of form
-                      (board, pi, v). pi is the MCTS informed policy vector for
-                      the given board, and v is its value. The examples has
-                      board in its canonical form.
-        """
-        self.net.train()
-
-    def predict(self, board):
         """
         Input:
             board: current board in its canonical form.
@@ -156,7 +141,14 @@ class ModeloNeuronal(NeuralNet):
                 game.getActionSize
             v: a float in [-1,1] that gives the value of the current board
         """
-        self.net.predict(board)
+        board = torch.FloatTensor(board.astype(torch.float64))
+        if args.cuda:
+            # Acomodar el tensor eficientemente en memoria de GPU
+            board = board.contiguous().cuda()
+        board = board.view(1, self.n, self.n)
+        self.nnet.eval()
+        with torch.no_grad():
+            pi, v = self.nnet(board)
 
     def save_checkpoint(self, folder='checkpoint', filename='checkpoint.pth.tar'):
         """
