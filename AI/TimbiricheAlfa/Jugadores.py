@@ -1,5 +1,5 @@
 import numpy as np
-from Timbiriche import Tablero
+from Tablero import Tablero
 
 class BotAleatorio:
     """

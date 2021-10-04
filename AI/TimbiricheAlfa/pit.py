@@ -1,7 +1,7 @@
 import Arena
 from MCTS import MCTS
 from Timbiriche import Timbiriche as Game
-from Timbiriche import Tablero
+from Tablero import Tablero
 from Jugadores import *
 from TimbiricheNet import ModeloNeuronal as NNet
 
@@ -15,22 +15,22 @@ any agent.
 """
 
 human_vs_cpu = True
-
 g = Game(3)
-
 
 # all players
 rp = BotAleatorio(g).play
 gp = BotAleatorioAvaro(g).play
 hp = Humano(g).play
 
-
+def nnetPlayer(g):
+    n1 = NNet(g)
+    args1 = dotdict({'numMCTSSims': 50, 'cpuct':1.0})
+    mcts1 = MCTS(g, n1, args1)
+    n1p = lambda x: np.argmax(mcts1.getActionProb(x, temp=0))
+    return n1p
 
 # nnet players
-#n1 = NNet(g)
-args1 = dotdict({'numMCTSSims': 50, 'cpuct':1.0})
-#mcts1 = MCTS(g, n1, args1)
-#n1p = lambda x: np.argmax(mcts1.getActionProb(x, temp=0))
+
 n1p = gp #Humano(g).play#
 
 if human_vs_cpu:
@@ -47,4 +47,4 @@ if human_vs_cpu:
 
 arena = Arena.Arena(n1p, player2, g, display=Tablero.display)
 
-print(arena.playGames(4, verbose=True))
+print(arena.playGames(1, verbose=True))
