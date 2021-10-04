@@ -31,7 +31,7 @@ class Timbiriche(Game):
         Returns:
             (x,y): a tuple of board dimensions
         """
-        return (self.n+1, self.n)
+        return (self.n, self.n)
 
     def getActionSize(self):
         """
@@ -55,7 +55,7 @@ class Timbiriche(Game):
         nextBoard.tablero = np.copy(board)
         p = nextBoard.mover(*self.actions[action])
         if p>1: # Anotación
-            self.score[(player+1)//2] += p-1
+            self.score[(-player+1)//2] += p-1
         if p==1: # Tiro válido sin anotaciones
             nextPlayer = -player
         else: # Tiro fallido o tiro con anotación
@@ -90,15 +90,14 @@ class Timbiriche(Game):
                small non-zero value for draw.
         """
         s1, s2 = self.score
-        if s1+s2 == (self.n-1)**2:
-            if s1>s2:
-                return 1#player
-            if s2>s1:
-                return -1#-player
-            else:
-                return 0.001 # Empate
+        if s1+s2 < (self.n-1)**2:
+            return 0
+        elif s1>s2:
+            return 1 * player
+        elif s2>s1:
+            return -1 * player
         else:
-            return 0 
+            return 0.001 # Empate
 
     def getCanonicalForm(self, board, player):
         """

@@ -1,12 +1,11 @@
+import numpy as np
+# Módulos del proyecto
 import Arena
 from MCTS import MCTS
 from Timbiriche import Timbiriche as Game
 from Tablero import Tablero
 from Jugadores import *
 from TimbiricheNet import ModeloNeuronal as NNet
-
-
-import numpy as np
 from utils import *
 
 """
@@ -14,37 +13,29 @@ use this script to play any two agents against each other, or play manually with
 any agent.
 """
 
-human_vs_cpu = True
-g = Game(3)
+def nnetPlayer(g, checkpoint_folder, checkpoint_file):
+    net = NNet(g)
+    net.load_checkpoint(checkpoint_folder, checkpoint_file)
+    args1 = dotdict({'numMCTSSims': 50, 'cpuct':1.0})
+    mcts1 = MCTS(g, net, args1)
+    netp = lambda x: netp.argmax(mcts1.getActionProb(x, temp=0))
+    return netp
 
-# all players
+
+g = Game(3)
+# Ubicación de parámetros almacenados
+checkpoint_folder = 'checkpoints/'
+checkpoint_file = 'checkpoints_best.pth.tar'
+
+# Catálogo de jugadores
 rp = BotAleatorio(g).play
 gp = BotAleatorioAvaro(g).play
 hp = Humano(g).play
+#n1p = nnetPlayer(g, checkpoint_folder, checkpoint_file)
 
-def nnetPlayer(g):
-    n1 = NNet(g)
-    args1 = dotdict({'numMCTSSims': 50, 'cpuct':1.0})
-    mcts1 = MCTS(g, n1, args1)
-    n1p = lambda x: np.argmax(mcts1.getActionProb(x, temp=0))
-    return n1p
+player1 = rp
+player2 = gp
 
-# nnet players
+arena = Arena.Arena(player1, player2, g, display=Tablero.display)
 
-n1p = gp #Humano(g).play#
-
-if human_vs_cpu:
-    player2 = Humano(g).play
-# else:
-#     n2 = NNet(g)
-#     n2.load_checkpoint('./pretrained_models/othello/pytorch/', '8x8_100checkpoints_best.pth.tar')
-#     args2 = dotdict({'numMCTSSims': 50, 'cpuct': 1.0})
-#     mcts2 = MCTS(g, n2, args2)
-#     n2p = lambda x: np.argmax(mcts2.getActionProb(x, temp=0))
-
-#     player2 = n2p  # Player 2 is neural network if it's cpu vs cpu.
-
-
-arena = Arena.Arena(n1p, player2, g, display=Tablero.display)
-
-print(arena.playGames(1, verbose=True))
+print(arena.playGames(4, verbose=True))

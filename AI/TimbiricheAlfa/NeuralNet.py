@@ -1,3 +1,6 @@
+
+# Prototipo de clase para implementar la red neuronal, la clase
+# derivada con la definición del modelo propio viene en TimbiricheNet.py
 class NeuralNet():
     """
     This class specifies the base NeuralNet class. To define your own neural
