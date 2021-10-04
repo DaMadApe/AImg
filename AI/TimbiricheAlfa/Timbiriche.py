@@ -54,6 +54,7 @@ class Tablero():
             cond &= (pos == 0 or (pos+mov == 3))
         else:
             # Puntos en la orilla del tablero están restringidos
+            cond &= pos == 0 
             if x == self.n-1:
                 cond &= mov == 1  # Sólo se vale ir vertical
             if y == self.n-1:
@@ -70,6 +71,7 @@ class Tablero():
             cond &= (pos == 0 or (pos+mov == 3))
         else:
             # Puntos en la orilla del tablero están restringidos
+            cond &= pos == 0 
             if x == n-1:
                 cond &= mov == 1  # Sólo se vale ir vertical
             if y == n-1:
@@ -83,8 +85,8 @@ class Tablero():
         mov: Tiro, 1 para vertical, 2 para horizontal 
         """
         if self.validarTiro(y, x, mov):
-            self.tablero[y, x] += mov
             p = self.evalScore(y, x, mov)
+            self.tablero[y, x] += mov
             return 1 + p  # Turno completo + los puntos ganados
         return 0  # Turno incompleto
 
@@ -97,16 +99,30 @@ class Tablero():
         if mov == 1:
             # pos%2 = (pos==1 or pos==3)
             # pos>1 = (pos==2 or pos==3)
-            if self[y, x-1] == 3 and self[y+1, x-1] > 1:
+            # Cierra izquierda
+            if x>0 and y<(self.n-1) and self[y, x-1] == 3 and self[y+1, x-1] > 1:
                 p += 1
-            if self[y, x] == 3 and self[y, x+1] > 1 and self[y, x+1] % 2:
+            # Cierra derecha
+            if (x<(self.n-1) and y<(self.n-1) and
+               (self[y, x] ==2 and self[y+1, x] > 1 and self[y, x+1] % 2)):
                 p += 1
         else:
-            if self[y, x-1] == 3 and self[y-1, x+1] % 2:
+            # Cierra abajo
+            if y>0 and x<(self.n-1) and self[y-1, x] == 3 and self[y-1, x+1] % 2:
                 p += 1
-            if self[y, x] == 3 and self[y, x+1] % 2 and self[y, x+1] > 1:
+            # Cierra arriba
+            if (x<(self.n-1) and y<(self.n-1) and
+               (self[y, x] ==1 and self[y, x+1] % 2 and self[y+1, x] > 1)):
                 p += 1
         return p
+
+    @classmethod
+    def display(cls, board):
+        # Método para imprimir un tablero externamente
+        n = board.shape[0]
+        tab = cls(n)
+        tab.tablero = np.copy(board)
+        print(tab)
 
 
 class Timbiriche(Game):
@@ -127,6 +143,7 @@ class Timbiriche(Game):
             startBoard: a representation of the board (ideally this is the form
                         that will be the input to your neural network)
         """
+        #self.score = [0, 0]
         return Tablero(self.n).tablero
 
     def getBoardSize(self):
@@ -156,13 +173,13 @@ class Timbiriche(Game):
         """
         nextBoard = Tablero(self.n)
         nextBoard.tablero = np.copy(board)
-        p = nextBoard.move(self.actions[action])
+        p = nextBoard.mover(*self.actions[action])
+        if p>1: # Anotación
+            self.score[(player+1)//2] += p-1
         if p==1: # Tiro válido sin anotaciones
             nextPlayer = -player
         else: # Tiro fallido o tiro con anotación
             nextPlayer = player
-        if p>1: # Anotación
-            self.score[(player+1)//2] += p-1
         return nextBoard.tablero, nextPlayer
 
     def getValidMoves(self, board, player):
@@ -193,11 +210,11 @@ class Timbiriche(Game):
                small non-zero value for draw.
         """
         s1, s2 = self.score
-        if s1+s2 == self.n**2:
+        if s1+s2 == (self.n-1)**2:
             if s1>s2:
-                return player
+                return 1#player
             if s2>s1:
-                return -player
+                return -1#-player
             else:
                 return 0.001 # Empate
         else:
