@@ -14,9 +14,10 @@ args = dotdict({
     'lr': 0.001,
     'dropout': 0.3,
     'epochs': 10,
-    'batch_size': 64,
+    'batch_size': 32,
     'cuda': torch.cuda.is_available(),
     'num_channels': 128,
+    'reduced_chans': 64
 })
 
 class TimbiricheNet(nn.Module):
@@ -32,27 +33,25 @@ class TimbiricheNet(nn.Module):
         self.args = args
 
         self.convnet = nn.Sequential(
-            nn.Conv2d(1, args.num_channels, 3),
-            nn.BatchNorm2d(args.num_channels),#nn.MaxPool2d(),
-            nn.ReLU(),
-            nn.Conv2d(args.num_channels, args.num_channels, 3),
+            nn.Conv2d(1, args.num_channels, 3, padding='same'),
             nn.BatchNorm2d(args.num_channels),
-            nn.ReLU())
+            nn.ReLU(),
+            nn.Conv2d(args.num_channels, args.num_channels, 3, padding='same'),
+            nn.BatchNorm2d(args.num_channels),
+            nn.ReLU()) # Salida: ()
 
         self.p_head = nn.Sequential(
-            nn.Conv1d(args.num_channels, args.num_channels, 3),
-            nn.BatchNorm1d(args.num_channels),
-            nn.Linear(args.num_channels, 64),
-            nn.ReLU(),
-            nn.Linear(64 ,self.action_size),
-            nn.Softmax()) # Activación final restringe salida [0,1] con suma = 1
+            nn.Conv2d(args.num_channels, 2, 1),
+            nn.BatchNorm2d(2),
+            nn.Flatten(start_dim=1),
+            nn.Linear(2*self.n**2, self.action_size),
+            nn.Softmax()) # Activación final con salida [0,1] y suma=1
 
         self.v_head = nn.Sequential(
-            nn.Conv1d(args.num_channels, args.num_channels, 3),
-            nn.BatchNorm1d(args.num_channels),
-            nn.Linear(args.num_channels, 64),
-            nn.ReLU(),
-            nn.Linear(64,1),
+            nn.Conv2d(args.num_channels, 1, 1),
+            nn.BatchNorm2d(1), #BN1D después de flatten?
+            nn.Flatten(start_dim=1), #Ver args para preservar batch
+            nn.Linear(self.n**2, 1),
             nn.Tanh())
 
     def forward(self, s):
@@ -70,7 +69,8 @@ class ModeloNeuronal(NeuralNet):
     NeuralNet, y de ahí vienen las siguientes descripciones
     """
     def __init__(self, game):
-        self.net = TimbiricheNet(game, args)
+        self.nnet = TimbiricheNet(game, args)
+        self.n, _ = game.getBoardSize()
 
     def train(self, examples):
         """
@@ -83,8 +83,8 @@ class ModeloNeuronal(NeuralNet):
                       the given board, and v is its value. The examples has
                       board in its canonical form.
         """
-        self.net.train()
-        optimizer = optim.Adam(self.net.parameters())
+        self.nnet.train()
+        optimizer = optim.Adam(self.nnet.parameters())
         for epoch in range(args.epochs):
             print(f'--- Época: {epoch+1} ---')
 
@@ -97,9 +97,9 @@ class ModeloNeuronal(NeuralNet):
             for _ in t:
                 sample_ids = np.random.randint(len(examples), size=args.batch_size)
                 boards, pis, vs = list(zip(*[examples[i] for i in sample_ids]))
-                boards = torch.FloatTensor(np.array(boards).astype(np.float64))
-                target_pis = torch.FloatTensor(np.array(pis))
-                target_vs = torch.FloatTensor(np.array(vs).astype(np.float64))
+                boards = torch.FloatTensor(boards/3)
+                target_pis = torch.FloatTensor(pis)
+                target_vs = torch.FloatTensor(vs)
 
                 # Acomodar elementos en memoria
                 if args.cuda:
@@ -141,7 +141,7 @@ class ModeloNeuronal(NeuralNet):
                 game.getActionSize
             v: a float in [-1,1] that gives the value of the current board
         """
-        board = torch.FloatTensor(board.astype(torch.float64))
+        board = torch.FloatTensor(board/3)
         if args.cuda:
             # Acomodar el tensor eficientemente en memoria de GPU
             board = board.contiguous().cuda()
@@ -150,7 +150,7 @@ class ModeloNeuronal(NeuralNet):
         with torch.no_grad():
             pi, v = self.nnet(board)
 
-    def save_checkpoint(self, folder='checkpoint', filename='checkpoint.pth.tar'):
+    def save_checkpoint(self, folder='checkpoint', filename='checkpoint.pt'):
         """
         Saves the current neural network (with its parameters) in
         folder/filename
@@ -162,10 +162,10 @@ class ModeloNeuronal(NeuralNet):
         else:
             print("Checkpoint Directory exists! ")
         torch.save({
-            'state_dict': self.net.state_dict(),
+            'state_dict': self.nnet.state_dict(),
         }, filepath)
 
-    def load_checkpoint(self, folder='checkpoint', filename='checkpoint.pth.tar'):
+    def load_checkpoint(self, folder='checkpoint', filename='checkpoint.pt'):
         """
         Loads parameters of the neural network from folder/filename
         """
@@ -174,4 +174,4 @@ class ModeloNeuronal(NeuralNet):
             raise ("No model in path {}".format(filepath))
         map_location = None if args.cuda else 'cpu'
         checkpoint = torch.load(filepath, map_location=map_location)
-        self.net.load_state_dict(checkpoint['state_dict'])
+        self.nnet.load_state_dict(checkpoint['state_dict'])

@@ -23,7 +23,7 @@ args = dotdict({
 
     'checkpoint': 'checkpoints/',
     'load_model': False,
-    'load_folder_file': ('checkpoints/','best.pth.tar'),
+    'load_folder_file': ('checkpoints/','best.pt'),
     'numItersForTrainExamplesHistory': 20,
 
 })
