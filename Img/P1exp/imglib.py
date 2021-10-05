@@ -65,50 +65,40 @@ def ecu_hist(img, res=255):
     return img_eq
 
 
-def met3(img):
-    hh, ww = img.shape[:2]
-
-    # take ln of image
-    img_log = np.log(np.float64(img), dtype=np.float64)
-
-    # do dft saving as complex output
-    dft = np.fft.fft2(img_log, axes=(0,1))
-
-    # apply shift of origin to center of image
-    dft_shift = np.fft.fftshift(dft)
-
-    # create black circle on white background for high pass filter
-    #radius = 3
-    radius = 13
-    mask = np.zeros_like(img, dtype=np.float64)
-    cy = mask.shape[0] // 2
-    cx = mask.shape[1] // 2
-    cv2.circle(mask, (cx,cy), radius, 1, -1)
-    mask = 1 - mask
-
-    # antialias mask via blurring
-    #mask = cv2.GaussianBlur(mask, (7,7), 0)
-    mask = cv2.GaussianBlur(mask, (47,47), 0)
-
-    # apply mask to dft_shift
-    dft_shift_filtered = np.multiply(dft_shift,mask)
-
-    # shift origin from center to upper left corner
-    back_ishift = np.fft.ifftshift(dft_shift_filtered)
-
-    # do idft saving as complex
-    img_back = np.fft.ifft2(back_ishift, axes=(0,1))
-
-    # combine complex real and imaginary components to form (the magnitude for) the original image again
-    img_back = np.abs(img_back)
-
-    # apply exp to reverse the earlier log
-    img_homomorphic = np.exp(img_back, dtype=np.float64)
-
-    # scale result
-    img_homomorphic = cv2.normalize(img_homomorphic, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-    return img_homomorphic
-
+def frankle_mccann(img, iter=4):
+    '''log(OP(x,y))=1/2{log(OP(x,y))+[log(OP(xs,ys))+log(R(x,y))-log(R(xs,ys))]*}, see
+       matlab code in https://www.cs.sfu.ca/~colour/publications/IST-2000/'''
+    if len(img.shape)==2:
+        img=img[...,None]
+    ret=np.zeros(img.shape,dtype='uint8')
+    def update_OP(x,y):
+        nonlocal OP
+        IP=OP.copy()
+        if x>0 and y==0:
+            IP[:-x,:]=OP[x:,:]+R[:-x,:]-R[x:,:]
+        if x==0 and y>0:
+            IP[:,y:]=OP[:,:-y]+R[:,y:]-R[:,:-y]
+        if x<0 and y==0:
+            IP[-x:,:]=OP[:x,:]+R[-x:,:]-R[:x,:]
+        if x==0 and y<0:
+            IP[:,:y]=OP[:,-y:]+R[:,:y]-R[:,-y:]
+        IP[IP>maximum]=maximum
+        OP=(OP+IP)/2
+    for i in range(img.shape[-1]):
+        R=np.log(img[...,i].astype('double')+1)
+        maximum=np.max(R)
+        OP=maximum*np.ones(R.shape)
+        S=2**(int(np.log2(np.min(R.shape))-1))
+        while abs(S)>=1: #iterations is slow
+            for k in range(iter):
+                update_OP(S,0)
+                update_OP(0,S)
+            S=int(-S/2)
+        OP=np.exp(OP)
+        mmin=np.min(OP)
+        mmax=np.max(OP)
+        ret[...,i]=(OP-mmin)/(mmax-mmin)*255
+    return ret.squeeze()
 
 
 def clahe(img):
@@ -121,5 +111,5 @@ def ecu_hist(img):
     return trans_v(img, cv2.equalizeHist)
 
 
-def m3(img):
-    return trans_v(img*255, met3)
+def retinex_FM(img):
+    return trans_v(img, frankle_mccann)
