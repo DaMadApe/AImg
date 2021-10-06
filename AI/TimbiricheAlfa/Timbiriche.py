@@ -76,8 +76,8 @@ class Timbiriche(Game):
         validMoves = []
         for action in self.actions:
             is_valid = Tablero.validarExterno(board, *action)
-            validMoves.append(int(is_valid))
-        return validMoves
+            validMoves.append(is_valid)
+        return np.array(validMoves, dtype=np.uint8)
 
     def getGameEnded(self, board, player):
         """
@@ -192,7 +192,8 @@ class Timbiriche(Game):
         pi_ref1 = reflect_pol(pi, self.n)
         pi_ref2 = reflect_pol(pi_rot90, self.n)
 
-        return [(tab_rot90, pi_rot90),
+        return [(board, pi),
+                (tab_rot90, pi_rot90),
                 (tab_rot180, pi_rot180),
                 (tab_rot270, pi_rot270),
                 (tab_ref1, pi_ref1),

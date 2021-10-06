@@ -45,7 +45,7 @@ class TimbiricheNet(nn.Module):
             nn.BatchNorm2d(2),
             nn.Flatten(start_dim=1),
             nn.Linear(2*self.n**2, self.action_size),
-            nn.Softmax()) # Activación final con salida [0,1] y suma=1
+            nn.Softmax(dim=1)) 
 
         self.v_head = nn.Sequential(
             nn.Conv2d(args.num_channels, 1, 1),
@@ -55,6 +55,7 @@ class TimbiricheNet(nn.Module):
             nn.Tanh())
 
     def forward(self, s):
+        s = s.unsqueeze(dim=1)
         s = self.convnet(s)
         pi = self.p_head(s)
         v = self.v_head(s)
@@ -92,12 +93,13 @@ class ModeloNeuronal(NeuralNet):
             v_losses = AverageMeter()
 
             batch_count = int(len(examples) / args.batch_size)
-
+            # train_set = Dataset(examples)
+            # train_loader = Dataloader(train_set, batch_)
             t = tqdm(range(batch_count), desc='Training Net')
             for _ in t:
                 sample_ids = np.random.randint(len(examples), size=args.batch_size)
                 boards, pis, vs = list(zip(*[examples[i] for i in sample_ids]))
-                boards = torch.FloatTensor(boards/3)
+                boards = torch.FloatTensor(boards)
                 target_pis = torch.FloatTensor(pis)
                 target_vs = torch.FloatTensor(vs)
 
@@ -109,9 +111,9 @@ class ModeloNeuronal(NeuralNet):
                 out_pi, out_v = self.nnet(boards) # Forward
 
                 criterio_pi = nn.NLLLoss()
-                loss_pi = criterio_pi(out_pi, target_pis)
+                loss_pi = self.loss_pi(out_pi, target_pis)#criterio_pi(out_pi, target_pis)
                 criterio_v = nn.MSELoss()
-                loss_v = criterio_v(out_v, target_vs)
+                loss_v = self.loss_v(out_v, target_vs)#criterio_v(out_v, target_vs)
 
                 loss = loss_pi + loss_v
 
@@ -125,10 +127,10 @@ class ModeloNeuronal(NeuralNet):
                 loss.backward()
                 optimizer.step()
 
-    def loss_pi(self, targets, outputs):
+    def loss_pi(self, outputs, targets):
         return -torch.sum(targets * outputs) / targets.size()[0]
 
-    def loss_v(self, targets, outputs):
+    def loss_v(self, outputs, targets):
         return torch.sum((targets - outputs.view(-1)) ** 2) / targets.size()[0]
 
     def predict(self, board):
@@ -141,7 +143,7 @@ class ModeloNeuronal(NeuralNet):
                 game.getActionSize
             v: a float in [-1,1] that gives the value of the current board
         """
-        board = torch.FloatTensor(board/3)
+        board = torch.FloatTensor(board)
         if args.cuda:
             # Acomodar el tensor eficientemente en memoria de GPU
             board = board.contiguous().cuda()
@@ -149,6 +151,8 @@ class ModeloNeuronal(NeuralNet):
         self.nnet.eval()
         with torch.no_grad():
             pi, v = self.nnet(board)
+        #return pi, v
+        return torch.exp(pi).data.cpu().numpy()[0], v.data.cpu().numpy()[0]
 
     def save_checkpoint(self, folder='checkpoint', filename='checkpoint.pt'):
         """

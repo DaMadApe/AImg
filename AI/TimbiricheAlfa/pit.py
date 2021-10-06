@@ -25,7 +25,7 @@ def nnetPlayer(g, checkpoint_folder, checkpoint_file):
 g = Game(3)
 # Ubicación de parámetros almacenados
 checkpoint_folder = 'checkpoints/'
-checkpoint_file = 'checkpoints_best.pth.tar'
+checkpoint_file = 'checkpoints_best.pt'
 
 # Catálogo de jugadores
 rp = BotAleatorio(g).play

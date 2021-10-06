@@ -46,6 +46,7 @@ class Arena():
             if verbose:
                 assert self.display
                 print("Turn ", str(it), "Player ", str(curPlayer))
+                print(f"Score: {self.game.score}")
                 self.display(board)
             action = players[curPlayer + 1](self.game.getCanonicalForm(board, curPlayer))
 
@@ -58,7 +59,7 @@ class Arena():
             board, curPlayer = self.game.getNextState(board, curPlayer, action)
         if verbose:
             assert self.display
-            print("Game over: Turn ", str(it), "Result ", str(self.game.getGameEnded(board, 1)))
+            print(f"Game over: Turn {it}, Result {self.game.getGameEnded(board, 1)}, Score: {self.game.score} ")
             self.display(board)
         return curPlayer * self.game.getGameEnded(board, curPlayer)
 
