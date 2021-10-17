@@ -1,7 +1,10 @@
 datos/
 Img/__pycache__/
+Img/Primer parcial
+AI/Primer parcial
 AI/__pycache__/
 __pycache__/
 .vscode/
-AI/sandb.ipynb
 Img/sandb.ipynb
+AI/sandb.ipynb
+colorSOM/
