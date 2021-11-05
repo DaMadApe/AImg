@@ -6,16 +6,23 @@ from nevergrad.optimization.optimizerlib import ConfiguredPSO
 
 class Particula:
 
-    def __init__(self, dims, min_val, max_val):
-        self.pos = np.random.uniform(min_val, max_val, dims)
+    def __init__(self, dim, min_val, max_val):
+        self.dim = dim
+        self.min_val = min_val
+        self.max_val = max_val
+        self.pos = np.random.uniform(min_val, max_val, dim)
         self.vel = np.random.uniform(min_val - max_val,
-                                     max_val - min_val, dims)
+                                     max_val - min_val, dim)
         self.bestPos = self.pos.copy()
         self.bestCost = None #np.inf
 
-    def paso(self, deltaVel):
-        self.vel += deltaVel
+    def paso(self, nextVel):
+        self.vel = nextVel
         self.pos += self.vel
+        # Restringir a espacio de búsqueda
+        for i in range(self.dim):
+            self.pos[i] = max(self.pos[i], self.min_val)
+            self.pos[i] = min(self.pos[i], self.max_val)
 
     def newBest(self, newCost):
         self.bestPos = self.pos.copy()
@@ -24,14 +31,14 @@ class Particula:
 
 class Enjambre:
 
-    def __init__(self, n_particulas, dims, min_val, max_val):
+    def __init__(self, n_particulas, dim, min_val, max_val):
         self.n_particulas = n_particulas
-        self.dims = dims
+        self.dim = dim
         self.min_val = min_val
         self.max_val = max_val
         self.particulas = []
         for _ in range(n_particulas):
-            self.particulas.append(Particula(dims, min_val, max_val))
+            self.particulas.append(Particula(dim, min_val, max_val))
         self.bestCost = 100000 #np.inf
         self.bestPos = None #np.random.choice(self.particulas).bestPos
         self.costHist = []
@@ -39,7 +46,7 @@ class Enjambre:
     def minimizar(self, cost_fun, c1, c2, w, iters):
         # Inicializar costos
         for p in self.particulas:
-            costo = cost_fun(p.bestPos)
+            costo = cost_fun(p.pos)
             p.newBest(costo)
             if costo < self.bestCost:
                 self.bestCost = costo
@@ -49,10 +56,10 @@ class Enjambre:
             for p in self.particulas:
                 # Actualizar pos y vel de partícula
                 r1, r2 = np.random.uniform(size=2)
-                deltaV = (w*p.vel
-                          + c1*r1*(p.bestPos - p.pos)
-                          + c2*r2*(self.bestPos - p.pos)) 
-                p.paso(deltaV)
+                nextV = (w*p.vel
+                         + c1*r1*(p.bestPos - p.pos)
+                         + c2*r2*(self.bestPos - p.pos)) 
+                p.paso(nextV)
 
                 cost = cost_fun(p.pos)
                 # Actualizar mejores valores de partícula
@@ -66,26 +73,6 @@ class Enjambre:
             if self.bestCost < np.inf:
                 self.costHist.append(self.bestCost)
 
-    # Tal vez poner min,max en metodo minimizar, y normalizar pos, vel
-
-    # def minimizar_social(self, cost_fun, n_grupos, c1, c2, w, iters):
-    #     """
-    #     Repartir índices en n_grupos
-    #     ABCABCABC
-    #     AAABBBCCC
-    #     Instanciar swarm para cada grupo?
-    #     """
-    #     N = self.n_particulas//n_grupos
-    #     for i in range(n_grupos):
-    #         grupo = Enjambre(N, self.dims, 
-    #                          self.min_val, self.max_val)
-    #         grupo.particulas = self.particulas[N*i:N*(i+1)]
-    #         grupo.minimizar(cost_fun, c1, c2, w, iters)
-    #         self.particulas[N*i:N*(i+1)] = grupo.particulas
-    #     for p in self.particulas:
-    #         if p.bestCost < self.bestCost:
-    #             self.bestCost = p.bestCost
-    #             self.bestPos = p.bestPos
 
 """
 Pruebas
@@ -105,15 +92,19 @@ if __name__ == '__main__':
     c1 = 1.9
     c2 = 1.9
     w = 1
-    iters = 1000
-    criterio = sphere
+    iters = 500
+    criterio = eggholder
 
-    swarm = Enjambre(100, 3, -1, 1)
-    swarm.minimizar(sphere, c1, c2, w, iters)
+    swarm = Enjambre(n_particulas=40, dim=2, min_val=0, max_val=512)
+    swarm.minimizar(criterio, c1, c2, w, iters)
 
     print("(Mejor posición, mejor costo)")
     print(swarm.bestPos, swarm.bestCost)
 
     # Graficar curva de pérdidas
-    plt.plot(swarm.costHist)
+    min_cost = min(swarm.costHist)
+    # Asegurar costos positivos para usar escala logarítmica
+    costHist = swarm.costHist - min(0, min_cost)
+    plt.plot(costHist)
+    plt.yscale("log")
     plt.show()
