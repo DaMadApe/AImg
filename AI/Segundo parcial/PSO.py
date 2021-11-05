@@ -86,3 +86,34 @@ class Enjambre:
     #         if p.bestCost < self.bestCost:
     #             self.bestCost = p.bestCost
     #             self.bestPos = p.bestPos
+
+"""
+Pruebas
+"""
+if __name__ == '__main__':
+
+    def sphere(x):
+        #min @ (0, 0) = 0
+        return np.sum(x**2)
+
+    def eggholder(x):
+        #min @ (512, 404.2319) = -959.6407
+        term1 = -(x[1]+47) * np.sin(np.sqrt(abs(x[0]/2 + x[1]+47)))
+        term2 = -x[0] * np.sin(np.sqrt(abs(x[0] - (x[1]+47))))
+        return term1 + term2
+
+    c1 = 1.9
+    c2 = 1.9
+    w = 1
+    iters = 1000
+    criterio = sphere
+
+    swarm = Enjambre(100, 3, -1, 1)
+    swarm.minimizar(sphere, c1, c2, w, iters)
+
+    print("(Mejor posición, mejor costo)")
+    print(swarm.bestPos, swarm.bestCost)
+
+    # Graficar curva de pérdidas
+    plt.plot(swarm.costHist)
+    plt.show()

@@ -45,7 +45,7 @@ def aislar_region(img, seed, tolerancia,
     region[seed[:, 1], seed[:, 0]] = True
     prom_region = np.mean(img[region])
     # Lienzo para dibujar la región de la imagen
-    canvas = np.ones(img.shape)
+    canvas = np.ones(img.shape)*255
 
     # Escalar tolerancia según escala de imagen
     tolerancia = tolerancia * img.max()
@@ -89,7 +89,7 @@ def aislar_region(img, seed, tolerancia,
             plt.pause(0.0001)
 
     if visual:
-        #plt.waitforbuttonpress()
+        plt.waitforbuttonpress()
         # plt.close()
         # Apagar interactividad si no estaba activada antes de función
         if not prev_ion:

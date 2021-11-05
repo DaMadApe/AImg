@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from skimage import io, data, color, util, exposure
+from skimage import io
 from skimage.filters import threshold_multiotsu
 import skfuzzy as fuzzy
 from crecimientoReg import (registrar_semillas,
@@ -40,11 +40,9 @@ def multi_imshow(imgs):
 """
 Pruebas
 """
-img = data.retina()
 img = io.imread('datos/Brain.png')
+c = 3 # Número de conjuntos
 
-
-c = 3
 
 # Método Otsu múltiple
 thres = threshold_multiotsu(img, classes=c)
@@ -53,7 +51,7 @@ regs_otsu = [img_otsu==i for i in range(c)]
 
 imgs = [(img_otsu, 'Umbral de Otsu', 'jet')]
 for i in range(c):
-    imgs.append((regs_otsu[i], f'Región {i}', 'gray'))
+    imgs.append((regs_otsu[i], f'Región {i+1}', 'gray'))
 
 multi_imshow(imgs)
 
@@ -63,13 +61,13 @@ img_fcm, clust_fcm = fcm_img(img, c)
 
 imgs = []
 for i in range(c):
-    imgs.append((clust_fcm[i], f'Cluster {i}', 'gray'))
+    imgs.append((clust_fcm[i], f'Cluster {i+1}', 'gray'))
 
 multi_imshow(imgs)
-
-plt.show()
 
 
 # Método crecimiento de región
 seed = registrar_semillas(img)
 reg = aislar_region(img, seed, tolerancia=0.1, visual=True)
+
+plt.show()
