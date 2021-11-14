@@ -38,39 +38,39 @@ def aplicar_filtro_frec(img, kernel):
 
 
 # Cargar imagen
-img = io.imread('datos/ojo/03_L.jpg')
-#img = data.retina()
+#img = io.imread('datos/ojo/03_L.jpg')
+img = data.retina()
 
 
 # Pasos del procesamiento
 proceso = []
 
 img_proc = img[:,:,1]
-proceso.append((img_proc.copy(), 'Canal Verde Aislado'))
+proceso.append((img_proc.copy(), 'Canal Verde Invertido'))
 
 img_proc = util.img_as_ubyte(exposure.equalize_adapthist(img_proc))
-proceso.append((img_proc.copy(), 'Ecualización apaptativa'))
+proceso.append((img_proc.copy(), 'Ecualización adaptativa'))
 
-img_proc = util.img_as_ubyte(img_proc < rank.otsu(img_proc, disk(30)))
-proceso.append((img_proc.copy(), 'Umbral localizado de Otsu'))
+img_proc = util.img_as_ubyte(img_proc < rank.otsu(img_proc, disk(8)))
+proceso.append((img_proc.copy(), 'Umbral local de Otsu r=8'))
 
-img_proc = rank.median(img_proc, disk(15))
-proceso.append((img_proc.copy(), 'med mediano'))
+img_proc = rank.mean(img_proc, disk(1))
+proceso.append((img_proc.copy(), 'Filtro medio r=1'))
 
-#img_final = img_med > filters.threshold_otsu(img_med)
-img_proc = morphology.opening(img_proc/255, disk(15))
-proceso.append((img_proc.copy(), 'Opening a imagen umbral'))
+img_proc = util.img_as_ubyte(img_proc==255)
+proceso.append((img_proc.copy(), 'Umbral máximo'))
+
+img_proc = morphology.area_opening(img_proc, 800)
+proceso.append((img_proc.copy(), 'Area opening A>800'))
 
 
 # Mostrar imágenes
-plt.figure(figsize=(15, 8))
-plt.subplot(2,3,1)
 plt.imshow(img)
-plt.axis('off')
 plt.title('Imagen original')
 
+plt.figure(figsize=(15, 10))
 for i, (img, titulo) in enumerate(proceso):
-    plt.subplot(2,3,i+2)
+    plt.subplot(2,3,i+1)
     plt.imshow(img, cmap='gray')
     plt.axis('off')
     plt.title(f'{i+1}. {titulo}')
