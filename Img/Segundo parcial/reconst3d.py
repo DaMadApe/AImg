@@ -14,7 +14,7 @@ rot = np.pi/46
 angles = [rot*i for i in range(99, 202)]
 contornos = []
 
-for indx in range(99,101):#(99, 202):
+for indx in range(99, 202):
     # Cargar imagen
     img = io.imread(f'datos/craneo_3d/IMG_0745 ({indx}).jpg')
 
@@ -29,31 +29,30 @@ for indx in range(99,101):#(99, 202):
     borde = morphology.binary_dilation(img_proc) & ~img_proc
 
     puntos = np.argwhere(borde) # ~1500 puntos
+    puntos = puntos[::15] # Tomar ~100 puntos por contorno
 
     contornos.append(puntos)
 
 """
 Rotar conjuntos de puntos
 """
-# def rot(theta, *puntos, eje=1):
-#     eje_rot = (eje+1)%3
-#     sin_t = np.sin(theta)
-#     cos_t = np.cos(theta)
-#     for punto in puntos:
-#         punto[eje] = punto[eje]*cos_t - punto[eje_rot]*sin_t
-#         punto[eje_rot] = punto[eje]*sin_t + punto[eje_rot]*cos_t
 
-nube_puntos = []
+nube_puntos = np.array([[0,0,0]])
 for i, puntos in enumerate(contornos):
     # Agregar valor z a cada coordenada
     n = puntos.shape[0]
     puntos = np.concatenate((puntos, np.zeros((n,1))), axis=1)
 
-    rot = R.from_rotvec((0, angles[i], 0))
+    # Generar matriz de rotación en torno a x
+    rot = R.from_rotvec((angles[i], 0, 0)).as_matrix()
+    # Rotar cada punto de cada contorno por su respectivo ángulo
     for punto in range(n):
         puntos[punto] = np.dot(rot, puntos[punto])
 
+    nube_puntos = np.concatenate((nube_puntos, puntos), axis=0)
+
 
 ax = plt.axes(projection='3d')
-ax.scatter(contornos[-1][:,0], contornos[-1][:,1], contornos[-1][:,1])
+ax.scatter(nube_puntos[:,0], nube_puntos[:,1], nube_puntos[:,2
+])
 plt.show()
