@@ -1,4 +1,4 @@
-
+#
 
 class Grafo():
 
@@ -16,11 +16,17 @@ class Grafo():
             self._grafo[nodo] = {}
 
     def asignar_borde(self, nodo1, nodo2, d):
+        """
+        Agregar una conexión con valor d entre nodos previamente agregados
+        """
         existe_n1 = nodo1 in self._grafo
         existe_n2 = nodo2 in self._grafo
         assert existe_n1 and existe_n2, 'Nodos no han sido agregados'
         self._grafo[nodo1][nodo2] = d
         self._grafo[nodo2][nodo1] = d
+
+    def valor_borde(self, nodo1, nodo2):
+        return self._grafo[nodo1][nodo2]
 
     def nodos(self):
         # Devolver la lista de los nodos del grafo
@@ -30,6 +36,14 @@ class Grafo():
         # Devolver la lista de nodos contiguos a un nodo
         assert nodo in self._grafo, 'Nodo no registrado'
         return list(self._grafo[nodo].keys())
+
+    def transformar_bordes(self, f):
+        """
+        Aplica la función f a todos los valores de borde de la gráfica
+        """
+        for nodo in self._grafo.keys():
+            for vecino in self._grafo[nodo].keys():
+                self._grafo[nodo][vecino] = f(self._grafo[nodo][vecino])
 
 
 class Metro(Grafo):
@@ -47,56 +61,61 @@ class Metro(Grafo):
                   'Mixcoac', 'Zapata', 'Ermita', 'Atlalilco']
         self.agregar_nodos(*cruces)
 
-        # La distancia es la cantidad de estaciones intermedias
-        self.asignar_borde('El Rosario', 'Instituto del Petróleo', 5)
-        self.asignar_borde('El Rosario', 'Tacuba', 3)
-        self.asignar_borde('Instituto del Petróleo', 'Deportivo 18 de Marzo', 1)
-        self.asignar_borde('Instituto del Petróleo', 'La Raza', 1)
-        self.asignar_borde('Deportivo 18 de Marzo', 'Martín Carrera', 1)
-        self.asignar_borde('Martín Carrera', 'Consulado', 2)
-        self.asignar_borde('Tacuba', 'Hidalgo', 6)
-        self.asignar_borde('Tacuba', 'Tacubaya', 4)
-        self.asignar_borde('La Raza', 'Consulado', 2)
-        self.asignar_borde('La Raza', 'Guerrero', 1)
-        self.asignar_borde('Consulado', 'Oceanía', 2)
-        self.asignar_borde('Consulado', 'Morelos', 1)
-        self.asignar_borde('Oceanía', 'Pantitlán', 2)
-        self.asignar_borde('Guerrero', 'Garibaldi/Lagunilla', 0)
-        self.asignar_borde('Guerrero', 'Hidalgo', 0)
-        self.asignar_borde('Garibaldi/Lagunilla', 'Morelos', 2)
-        self.asignar_borde('Garibaldi/Lagunilla', 'Bellas Artes', 0)
-        self.asignar_borde('Morelos', 'San Lázaro', 0)
-        self.asignar_borde('Morelos', 'Candelaria', 0)
-        self.asignar_borde('Hidalgo', 'Bellas Artes', 0)
-        self.asignar_borde('Hidalgo', 'Balderas', 1)
-        self.asignar_borde('Bellas Artes', 'Pino Suárez', 2)
-        self.asignar_borde('Bellas Artes', 'Salto del Agua', 1)
-        self.asignar_borde('Balderas', 'Salto del Agua', 0)
-        self.asignar_borde('Balderas', 'Centro Médico', 2)
-        self.asignar_borde('Salto del Agua', 'Pino Suárez', 1)
-        self.asignar_borde('Salto del Agua', 'Chabacano', 2)
-        self.asignar_borde('Pino Suárez', 'Candelaria', 1)
-        self.asignar_borde('Pino Suárez', 'Chabacano', 1)
-        self.asignar_borde('Candelaria', 'San Lázaro', 0)
-        self.asignar_borde('Candelaria', 'Jamaica', 1)
-        self.asignar_borde('San Lázaro', 'Oceanía', 2)
-        self.asignar_borde('San Lázaro', 'Pantitlán', 5)
-        self.asignar_borde('Tacubaya', 'Centro Médico', 2)
-        self.asignar_borde('Tacubaya', 'Mixcoac', 2)
-        self.asignar_borde('Centro Médico', 'Chabacano', 1)
-        self.asignar_borde('Centro Médico', 'Zapata', 3)
-        self.asignar_borde('Chabacano', 'Jamaica', 0)
-        self.asignar_borde('Chabacano', 'Santa Anita', 1)
-        self.asignar_borde('Chabacano', 'Ermita', 5)
-        self.asignar_borde('Jamaica', 'Pantitlán', 4)
-        self.asignar_borde('Jamaica', 'Santa Anita', 0)
-        self.asignar_borde('Santa Anita', 'Atlalilco', 5)
-        self.asignar_borde('Mixcoac', 'Zapata', 2)
-        self.asignar_borde('Zapata', 'Ermita', 2)
-        self.asignar_borde('Ermita', 'Atlalilco', 1)
+        # La distancia es la cantidad de estaciones intermedias + 1
+        self.asignar_borde('El Rosario', 'Instituto del Petróleo', 6)
+        self.asignar_borde('El Rosario', 'Tacuba', 4)
+        self.asignar_borde('Instituto del Petróleo', 'Deportivo 18 de Marzo', 2)
+        self.asignar_borde('Instituto del Petróleo', 'La Raza', 2)
+        self.asignar_borde('Deportivo 18 de Marzo', 'Martín Carrera', 2)
+        self.asignar_borde('Martín Carrera', 'Consulado', 3)
+        self.asignar_borde('Tacuba', 'Hidalgo', 7)
+        self.asignar_borde('Tacuba', 'Tacubaya', 5)
+        self.asignar_borde('La Raza', 'Consulado', 3)
+        self.asignar_borde('La Raza', 'Guerrero', 2)
+        self.asignar_borde('Consulado', 'Oceanía', 3)
+        self.asignar_borde('Consulado', 'Morelos', 2)
+        self.asignar_borde('Oceanía', 'Pantitlán', 3)
+        self.asignar_borde('Guerrero', 'Garibaldi/Lagunilla', 1)
+        self.asignar_borde('Guerrero', 'Hidalgo', 1)
+        self.asignar_borde('Garibaldi/Lagunilla', 'Morelos', 3)
+        self.asignar_borde('Garibaldi/Lagunilla', 'Bellas Artes', 1)
+        self.asignar_borde('Morelos', 'San Lázaro', 1)
+        self.asignar_borde('Morelos', 'Candelaria', 1)
+        self.asignar_borde('Hidalgo', 'Bellas Artes', 1)
+        self.asignar_borde('Hidalgo', 'Balderas', 2)
+        self.asignar_borde('Bellas Artes', 'Pino Suárez', 3)
+        self.asignar_borde('Bellas Artes', 'Salto del Agua', 2)
+        self.asignar_borde('Balderas', 'Salto del Agua', 1)
+        self.asignar_borde('Balderas', 'Centro Médico', 3)
+        self.asignar_borde('Salto del Agua', 'Pino Suárez', 2)
+        self.asignar_borde('Salto del Agua', 'Chabacano', 3)
+        self.asignar_borde('Pino Suárez', 'Candelaria', 2)
+        self.asignar_borde('Pino Suárez', 'Chabacano', 2)
+        self.asignar_borde('Candelaria', 'San Lázaro', 1)
+        self.asignar_borde('Candelaria', 'Jamaica', 2)
+        self.asignar_borde('San Lázaro', 'Oceanía', 3)
+        self.asignar_borde('San Lázaro', 'Pantitlán', 6)
+        self.asignar_borde('Tacubaya', 'Centro Médico', 3)
+        self.asignar_borde('Tacubaya', 'Mixcoac', 3)
+        self.asignar_borde('Centro Médico', 'Chabacano', 2)
+        self.asignar_borde('Centro Médico', 'Zapata', 4)
+        self.asignar_borde('Chabacano', 'Jamaica', 1)
+        self.asignar_borde('Chabacano', 'Santa Anita', 2)
+        self.asignar_borde('Chabacano', 'Ermita', 4)
+        self.asignar_borde('Jamaica', 'Pantitlán', 5)
+        self.asignar_borde('Jamaica', 'Santa Anita', 1)
+        self.asignar_borde('Santa Anita', 'Atlalilco', 6)
+        self.asignar_borde('Mixcoac', 'Zapata', 3)
+        self.asignar_borde('Zapata', 'Ermita', 3)
+        self.asignar_borde('Ermita', 'Atlalilco', 2)
 
 
 if __name__ == '__main__':
 
-    metro = Metro()
-    print(metro.vecinos('Jamaica'))
+    grafo = Grafo()
+    grafo.agregar_nodos('a', 'b', 'c', 'd')
+    grafo.asignar_borde('a', 'b', 2)
+    grafo.asignar_borde('b', 'c', 1)
+    grafo.asignar_borde('b', 'd', 4)
+
+    assert grafo.valor_borde('b', 'c') == 1

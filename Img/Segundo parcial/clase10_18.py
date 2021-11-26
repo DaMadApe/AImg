@@ -28,6 +28,27 @@ def pasaaltos_butter(shape, f_corte, N):
     circulo = (x**2 + y**2 >= f_corte**2)
     return filtro.astype(float)
 
+def aplicar_filtro_frec(img, kernel):
+    if kernel.shape == img.shape:
+        filtro = kernel
+    else:
+        filtro = np.zeros(img.shape)
+        filtro[:kernel.shape[0], :kernel.shape[1]] = kernel
+
+    img_frec = np.fft.fftshift(np.fft.fft2(img))
+    filtro = pasaaltos_ideal(img.shape, 100)
+
+    # Aplicar el filtro en frecuencia
+    convolucion = img_frec * filtro
+    # Regresar al dominio espacial
+    img_ift = np.fft.ifft2(np.fft.fftshift(convolucion))
+    img_final = np.abs(img_ift)
+    img_final = util.img_as_ubyte(img_final/np.max(img_final))
+    return img_final
+
+
+
+
 img = data.camera()
 img_ft = np.fft.fftshift(np.fft.fft2(img))
 
