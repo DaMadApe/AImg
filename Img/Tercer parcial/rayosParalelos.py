@@ -11,10 +11,11 @@ def trans_radon(img, step=1):
     return trans
 
 def inv_radon(t_radon):
-    recons = np.zeros(img.shape)
+    ancho = t_radon.shape[1]
+    recons = np.zeros((ancho, ancho))
     ang = 180/t_radon.shape[0]
     for i, fila in enumerate(t_radon):
-        proyec = fila * np.ones((img.shape[1], 1))
+        proyec = fila * np.ones((ancho, 1))
         recons += transform.rotate(proyec, -i*ang)
     return recons
 
@@ -22,20 +23,14 @@ def filtro_hamming(t_radon):
     """
     Ventana de Hamming en frecuencia para cada fila de un arreglo
     """
-    """"""
-    a = 1
-    omega=np.arange( -np.pi, np.pi-(2*np.pi)/(t_radon.shape[1]+1), (2*np.pi)/(t_radon.shape[1]+1) )
-    rn1 = np.abs( 2/a*np.sin(a*omega/2) )
-    rn2 = np.sin(a*omega/2)
-    rd = (a*omega)/2
-    filtro = rn1 * (rn2/rd)**2
-    """"""
-    # c = 0.54
-    # omega = np.arange(-np.pi, np.pi, t_radon.shape[1])
-    # hamming = c + (c-1)*np.cos(2*np.pi*omega/t_radon.shape[1])
+    ancho = t_radon.shape[1]
+    c = 0.54
+    omega = np.linspace(-np.pi, np.pi, ancho)
+    ventana_cos = c - (c-1)*np.cos(2*omega/np.pi)
+    rampa = np.abs(omega)
     fourier = np.fft.fft(t_radon)
-    filtro_frec = np.fft.fftshift(filtro)
-    convolucion = fourier * filtro_frec
+    filtro = np.fft.fftshift(ventana_cos * rampa)
+    convolucion = fourier * filtro
     return np.real(np.fft.ifft(convolucion))
 
 
