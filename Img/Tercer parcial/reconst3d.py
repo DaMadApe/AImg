@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from skimage import (io, data, util, color,
+from skimage import (io, util, color, transform,
                      filters, morphology)
 from skimage.filters import rank
 from scipy.spatial.transform import Rotation as R
@@ -19,7 +19,7 @@ y0, y1 = 270, 830
 x0, x1 = 10, 700
 recorte = np.s_[y0:y1, x0:x1]
 h_rebanada = 30
-rebanadas_radon = np.zeros(((y1-y0)//h_rebanada, n_imgs, x1-x0))
+rebanadas_radon = np.zeros(((y1-y0)//h_rebanada, n_imgs, x1-x0), dtype=np.float16)
 
 for idx in range(0, n_imgs):
     # Cargar imagen
@@ -42,16 +42,12 @@ for idx in range(0, n_imgs):
 """
 Procesar el sinograma de cada rebanada
 """
-recons = np.zeros((y1-y0, x1-x0, x1-x0))
+recons = np.zeros((y1-y0, x1-x0, x1-x0), dtype=np.byte)
 for i, rebanada in enumerate(rebanadas_radon):
     proc = filtro_hamming(rebanada)
-    proc = inv_radon(proc)
+    proc = inv_radon(proc) > 0.5
     filas = np.s_[h_rebanada*i:h_rebanada*(i+1)]
-    recons[filas] = proc * np.ones((h_rebanada,1,1))
+    recons[filas] = proc * np.ones((h_rebanada,1,1), dtype=np.byte)
 
 
 np.save('recons_craneo3d.npy', recons)
-
-# ax = plt.axes(projection='3d')
-# ax.voxels(recons)
-# plt.show()
