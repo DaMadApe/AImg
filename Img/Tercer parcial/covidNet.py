@@ -61,7 +61,8 @@ class CovidNet2(nn.Module):
             nn.ReLU(),
             nn.MaxPool2d((2,2)),
             nn.Flatten(),
-            nn.Linear(10952, 128),
+            # nn.Linear(10952, 128),
+            nn.Linear(8192, 128), # Con Randomcrop(260)
             nn.ReLU(),
             nn.Dropout(0.5),
             nn.Linear(128, 3), # 3 clases

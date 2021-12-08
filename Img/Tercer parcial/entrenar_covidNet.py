@@ -8,23 +8,35 @@ from tqdm import tqdm
 from covidNet import *
 
 
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 # Parámetros de entrenamiento
 lr = 1e-3
 batch_size = 32
-epochs = 5
+epochs = 3
 
 """
 Datasets
 """
-img_transforms = transforms.Compose([
+train_transforms = transforms.Compose([
+    transforms.RandomCrop(260),
     transforms.ToTensor(),
     transforms.Grayscale(),
-    transforms.Normalize(0.5094, 0.2503)
+    #transforms.Normalize(0.5094, 0.2503)
+    transforms.Normalize(0.5366, 0.2207) # Con Randomcrop (260)
+    ])
+
+eval_transforms = transforms.Compose([
+    transforms.CenterCrop(260),
+    transforms.ToTensor(),
+    transforms.Grayscale(),
+    #transforms.Normalize(0.5094, 0.2503)
+    transforms.Normalize(0.5366, 0.2207) # Con Randomcrop (260)
     ])
 
 # ImageFolder automatiza carga de imágenes y etiqueta según folder
-train_set = ImageFolder('datos/pulmones/train', img_transforms)
-val_set = ImageFolder('datos/pulmones/val', img_transforms)
+train_set = ImageFolder('datos/pulmones/train', train_transforms)
+val_set = ImageFolder('datos/pulmones/val', eval_transforms)
 
 # Generadores para iterar los datos
 train_loader = DataLoader(train_set,
