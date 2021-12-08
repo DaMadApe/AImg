@@ -18,7 +18,8 @@ Datasets
 """
 img_transforms = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Grayscale()
+    transforms.Grayscale(),
+    transforms.Normalize(0.5094, 0.2503)
     ])
 
 # ImageFolder automatiza carga de imágenes y etiqueta según folder
