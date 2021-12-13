@@ -1,6 +1,5 @@
 import random
 from collections import namedtuple, deque
-from itertools import count
 import os
 import numpy as np
 import torch
@@ -16,6 +15,10 @@ class DQN(nn.Module):
             nn.ReLU(),
             nn.Linear(16, 16),
             nn.ReLU(),
+            nn.Linear(16, 16),
+            nn.ReLU(),
+            # nn.Linear(16, 16),
+            # nn.ReLU(),
             nn.Linear(16, 16),
             nn.ReLU(),
             nn.Linear(16, action_size)
@@ -44,13 +47,12 @@ class Memoria(object):
 
 class Agente_Q():
     """docstring for ClassName."""
-    def __init__(self, env, max_mem):
+    def __init__(self, env, max_mem=1000):
         self.env = env
         self.memoria = Memoria(max_mem)
         self.n_acciones = self.env.action_space.n
         self.policy_net = DQN(128, self.n_acciones)
         self.target_net = DQN(128, self.n_acciones)
-        self.optimizer = torch.optim.Adam(self.policy_net.parameters())
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
         self.steps_done = 0
@@ -70,15 +72,13 @@ class Agente_Q():
         load_path = os.path.join(path, name)
         self.policy_net.load_state_dict(torch.load(load_path))
 
-    def seleccionar_accion(self, state):
-        eps_inicial = 0.9
-        eps_final = 0.05
-        eps_decay = 200
+    def seleccionar_accion(self, state, eps_inicial=1.,
+                           eps_final=0.1, eps_decay=200, modo_eval=False):
 
         eps_threshold = eps_final + (eps_inicial - eps_final) * \
             np.exp(-1. * self.steps_done / eps_decay)
         self.steps_done += 1
-        if random.random() > eps_threshold:
+        if random.random() > eps_threshold or modo_eval:
             with torch.no_grad():
                 # t.max(1) will return largest column value of each row.
                 # second column on max result is index of where max element was
@@ -89,17 +89,19 @@ class Agente_Q():
             #return self.env.action_space.sample()
 
 
-    def entrenar(self, n_episodios, batch_size, gamma, target_update=5):
+    def entrenar(self, n_episodios, batch_size, gamma, lr, target_update=10, 
+                 eps_inicial=1., eps_final=0.1, eps_decay=200):
+        self.optimizer = torch.optim.Adam(self.policy_net.parameters(), lr=lr)
         for i_episode in range(n_episodios):
             # Initialize the environment and state
             state = self.env.reset()
-            state = torch.tensor([state], dtype=torch.float)
+            state = torch.tensor([state], dtype=torch.float) / 255
             #state = self.env.step(0)[0]
-            for t in count(): #while True: ?
+            while True:
                 # Select and perform an action
-                action = self.seleccionar_accion(state)
+                action = self.seleccionar_accion(state, eps_inicial, eps_final, eps_decay)
                 next_state, reward, done, _ = self.env.step(action.item())
-                next_state = torch.tensor([next_state], dtype=torch.float)
+                next_state = torch.tensor([next_state], dtype=torch.float) / 255
                 reward = torch.tensor([reward])
                 # Hacer iguales los estados terminales
                 if done:
@@ -159,8 +161,8 @@ class Agente_Q():
         expected_state_action_values = (next_state_values * gamma) + reward_batch
 
         # Compute Huber loss
-        criterion = nn.SmoothL1Loss()
-        #criterio = nn.HuberLoss()
+        #criterion = nn.SmoothL1Loss()
+        criterion = nn.HuberLoss()
         loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
 
         # Optimize the model
@@ -171,25 +173,15 @@ class Agente_Q():
             param.grad.data.clamp_(-1, 1)
         self.optimizer.step()
 
+
 if __name__ == "__main__":
     
     import gym
 
-    env = gym.make('Breakout-ram-v0',
-                frameskip=5)
-                #render_mode='human')
+    env = gym.make('Pong-ram-v4',
+                   frameskip=8)
 
-    # observation = env.reset()
-    # for _ in range(150):
-    #     #env.render()
-    #     action = env.action_space.sample() # your agent here (this takes random actions)
-    #     observation, reward, done, info = env.step(action)
-    #     print(reward)
-    #     if done:
-    #         observation = env.reset()
-    # env.close()
-
-
-    agente = Agente_Q(env, max_mem=1000)
-    agente.entrenar(n_episodios=10, batch_size=16, gamma=0.5)
-    agente.guardar("AI/Tercer parcial/agentes_q", "agente1")
+    agente = Agente_Q(env, max_mem=500)
+    agente.entrenar(n_episodios=100, batch_size=128,
+                    gamma=0.999, lr=3e-4, target_update=10, eps_decay=100)
+    agente.guardar("AI/Tercer parcial/agentes_q", "pong")

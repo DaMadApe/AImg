@@ -2,19 +2,19 @@ import gym
 from QLearn import Agente_Q
 import torch
 
-env = gym.make('Breakout-ram-v0',
-            frameskip=5,
-            render_mode='human')
+env = gym.make('Pong-ram-v4',
+               #frameskip=8,
+               render_mode='human')
 
-agente = Agente_Q(env, max_mem=1000)
-agente.cargar("AI/Tercer parcial/agentes_q", "agente1")
+agente = Agente_Q(env)
+agente.cargar("AI/Tercer parcial/agentes_q", "pong")
 
 estado = env.reset()
 for _ in range(300):
-    #env.render()
-    estado = torch.tensor([estado], dtype=torch.float)
-    action = agente.seleccionar_accion(estado)
-    estado, reward, done, info = env.step(action)
+    estado = torch.tensor([estado], dtype=torch.float) / 255
+    action = agente.seleccionar_accion(estado, modo_eval=True)
+    estado, reward, done, info = env.step(action.item())
+    #print(action, reward)
     if done:
         estado = env.reset()
 env.close()
