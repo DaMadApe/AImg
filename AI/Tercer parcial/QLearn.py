@@ -71,12 +71,9 @@ class Agente_Q():
         self.policy_net.load_state_dict(torch.load(load_path))
 
     def seleccionar_accion(self, state):
-        batch_size = 32
-        gamma = 0.99
         eps_inicial = 0.9
         eps_final = 0.05
         eps_decay = 200
-        target_update = 10
 
         eps_threshold = eps_final + (eps_inicial - eps_final) * \
             np.exp(-1. * self.steps_done / eps_decay)
@@ -92,7 +89,7 @@ class Agente_Q():
             #return self.env.action_space.sample()
 
 
-    def entrenar(self, n_episodios, batch_size, gamma, target_update=10):
+    def entrenar(self, n_episodios, batch_size, gamma, target_update=5):
         for i_episode in range(n_episodios):
             # Initialize the environment and state
             state = self.env.reset()
@@ -194,5 +191,5 @@ if __name__ == "__main__":
 
 
     agente = Agente_Q(env, max_mem=1000)
-    agente.entrenar(10, 16, 0.5)
+    agente.entrenar(n_episodios=10, batch_size=16, gamma=0.5)
     agente.guardar("AI/Tercer parcial/agentes_q", "agente1")
