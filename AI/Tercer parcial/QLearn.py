@@ -49,12 +49,13 @@ class Agente_Q():
         self.n_acciones = self.env.action_space.n
         self.policy_net = DQN(128, self.n_acciones)
         self.target_net = DQN(128, self.n_acciones)
-        self.optimizador = torch.optim.Adam(self.policy_net.parameters())
+        self.optimizer = torch.optim.Adam(self.policy_net.parameters())
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
-        self.pasos_terminados = 0
+        self.steps_done = 0
 
-    def seleccionar_accion(self, estado):
+
+    def seleccionar_accion(self, state):
         batch_size = 32
         gamma = 0.99
         eps_inicial = 0.9
@@ -63,18 +64,54 @@ class Agente_Q():
         target_update = 10
 
         eps_threshold = eps_final + (eps_inicial - eps_final) * \
-            np.exp(-1. * self.pasos_terminados / eps_decay)
-        self.pasos_terminados += 1
+            np.exp(-1. * self.steps_done / eps_decay)
+        self.steps_done += 1
         if random.random() > eps_threshold:
             with torch.no_grad():
                 # t.max(1) will return largest column value of each row.
                 # second column on max result is index of where max element was
                 # found, so we pick action with the larger expected reward.
-                return self.policy_net(estado).max(1)[1].view(1, 1)
+                return self.policy_net(state).max(1)[1].view(1, 1)
         else:
             return torch.tensor([[random.randrange(self.n_acciones)]], dtype=torch.long)
+            #return self.env.action_space.sample()
 
-    def optimize_model(self, batch_size, gamma):
+
+    def entrenar(self, n_episodios, batch_size, gamma, target_update=10):
+        for i_episode in range(n_episodios):
+            # Initialize the environment and state
+            state = self.env.reset()
+            state = torch.tensor([state], dtype=torch.float)
+            #state = self.env.step(0)[0]
+            for t in count():
+                # Select and perform an action
+                action = self.seleccionar_accion(state)
+                next_state, reward, done, _ = self.env.step(action.item())
+                next_state = torch.tensor([next_state], dtype=torch.float)
+                reward = torch.tensor([reward])
+                # Hacer iguales los estados terminales
+                if done:
+                    next_state = None
+
+                # Store the transition in memory
+                self.memoria.push(state, action, next_state, reward)
+
+                # Move to the next state
+                state = next_state
+                # Paso de optimización de policy_net
+                self._optimize_model(batch_size, gamma)
+                
+                if done:
+                    break
+            # Update the target network, copying all weights and biases in DQN
+            if i_episode % target_update == 0:
+                self.target_net.load_state_dict(self.policy_net.state_dict())
+
+
+    def _optimize_model(self, batch_size, gamma):
+        """
+        Paso de optimización de policy_net
+        """
         if len(self.memoria) < batch_size:
             return
         transitions = self.memoria.sample(batch_size)
@@ -115,63 +152,31 @@ class Agente_Q():
         loss = criterion(state_action_values, expected_state_action_values.unsqueeze(1))
 
         # Optimize the model
-        self.optimizador.zero_grad()
+        self.optimizer.zero_grad()
         loss.backward()
         # Recorte de gradientes para restringirlos a [-1, 1]
         for param in self.policy_net.parameters():
             param.grad.data.clamp_(-1, 1)
-        self.optimizador.step()
-
-    def entrenar(self, n_episodios, batch_size, gamma, target_update=10):
-        for i_episode in range(n_episodios):
-            # Initialize the environment and state
-            self.env.reset()
-            # last_screen = get_screen()
-            # current_screen = get_screen()
-            # state = current_screen - last_screen
-
-            estado = self.env.step(0)[0]
-            for t in count():
-                # Select and perform an action
-                action = self.seleccionar_accion(estado)
-                next_state, reward, done, _ = self.env.step(action.item())
-                reward = torch.tensor([reward])
-
-                # Store the transition in memory
-                self.memoria.push(state, action, next_state, reward)
-
-                # Move to the next state
-                state = next_state
-
-                # Perform one step of the optimization (on the policy network)
-                self.optimize_model(batch_size, gamma)
-                
-                if done:
-                    break
-            # Update the target network, copying all weights and biases in DQN
-            if i_episode % target_update == 0:
-                self.target_net.load_state_dict(self.policy_net.state_dict())
-
+        self.optimizer.step()
 
 if __name__ == "__main__":
     
     import gym
 
     env = gym.make('Breakout-ram-v0',
-                frameskip=5,
-                render_mode='human')
+                frameskip=5)
+                #render_mode='human')
 
-    observation = env.reset()
-    for _ in range(150):
-        #env.render()
-        action = env.action_space.sample() # your agent here (this takes random actions)
-        observation, reward, done, info = env.step(action)
-        print(reward)
-        if done:
-            observation = env.reset()
-    env.close()
+    # observation = env.reset()
+    # for _ in range(150):
+    #     #env.render()
+    #     action = env.action_space.sample() # your agent here (this takes random actions)
+    #     observation, reward, done, info = env.step(action)
+    #     print(reward)
+    #     if done:
+    #         observation = env.reset()
+    # env.close()
 
 
-    agente = Agente_Q()
-
-    
+    agente = Agente_Q(env, max_mem=1000)
+    agente.entrenar(10, 16, 0.5)
