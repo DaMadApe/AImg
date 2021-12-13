@@ -1,7 +1,8 @@
-import numpy as np
 import random
 from collections import namedtuple, deque
 from itertools import count
+import os
+import numpy as np
 import torch
 import torch.nn as nn
 
@@ -54,6 +55,20 @@ class Agente_Q():
         self.target_net.eval()
         self.steps_done = 0
 
+    def guardar(self, path, name):
+        # Almacenar los parámetros de policy_net
+        name += ".pt"
+        if not os.path.exists(path):
+            print("Folder no existe, se creará uno nuevo")
+            os.makedirs(path)
+        save_path = os.path.join(path, name)
+        torch.save(self.policy_net.state_dict(), save_path)
+
+    def cargar(self, path, name):
+        # Recuperar parámetros de un entrenamiento anterior
+        name += ".pt"
+        load_path = os.path.join(path, name)
+        self.policy_net.load_state_dict(torch.load(load_path))
 
     def seleccionar_accion(self, state):
         batch_size = 32
@@ -83,7 +98,7 @@ class Agente_Q():
             state = self.env.reset()
             state = torch.tensor([state], dtype=torch.float)
             #state = self.env.step(0)[0]
-            for t in count():
+            for t in count(): #while True: ?
                 # Select and perform an action
                 action = self.seleccionar_accion(state)
                 next_state, reward, done, _ = self.env.step(action.item())
@@ -180,3 +195,4 @@ if __name__ == "__main__":
 
     agente = Agente_Q(env, max_mem=1000)
     agente.entrenar(10, 16, 0.5)
+    agente.guardar("AI/Tercer parcial/agentes_q", "agente1")
