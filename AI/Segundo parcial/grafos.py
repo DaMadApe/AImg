@@ -1,4 +1,7 @@
-#
+"""
+Clases auxiliares para representar grafos,
+para usar con Ant Colony Optimization (ACO.py)
+"""
 
 class Grafo():
 
@@ -47,7 +50,9 @@ class Grafo():
 
 
 class Metro(Grafo):
-
+    """
+    Instancia de grafo que representa el metro de la CDMX
+    """
     def __init__(self):
         super().__init__()
         # Inicializar nodos: Estaciones de transbordo

@@ -3,7 +3,9 @@ from grafos import Grafo
 
 
 class Ant():
-
+    """
+    Una única hormiga, con registro de recorrido
+    """
     def __init__(self):
         self.recorrido = []
         self.dist_recorrida = 0
@@ -18,7 +20,9 @@ class Ant():
 
 
 class Colony():
-
+    """
+    Colonia de hormigas artificial, instanciada en un grafo
+    """
     def __init__(self, grafo, n_ants):
         self.grafo = grafo
         # Grafo de feromonas con la topología del grafo de entrada

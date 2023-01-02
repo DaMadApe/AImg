@@ -1,9 +1,7 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from skimage import (io, util, color, transform,
                      filters, morphology)
 from skimage.filters import rank
-from scipy.spatial.transform import Rotation as R
 
 from rayosParalelos import *
 
@@ -14,12 +12,15 @@ de Radón para las rebanadas normales al eje de giro
 idx_inicio = 104 # Número de primera imagen (voltea a derecha)
 idx_final = 150 # Número de última imagen (voltea a izquierda)
 n_imgs = idx_final - idx_inicio +1
+
 # Recorte de las imágenes
 y0, y1 = 280, 800
 x0, x1 = 10, 700
 recorte = np.s_[y0:y1, x0:x1]
-# h_rebanada = 30
+
+# Factor de reducción de las imágenes procesadas
 escala = 10
+
 rebanadas_radon = np.zeros(((y1-y0)//escala,
                             n_imgs,
                             (x1-x0)//escala), dtype=np.float16)
@@ -43,15 +44,19 @@ for idx in range(0, n_imgs):
         rebanadas_radon[f, idx] += fila
 
 """
-Procesar el sinograma de cada rebanada
+Procesar la transformada de Radón de cada rebanada
 """
 recons = np.zeros(((y1-y0)//escala,
                    (x1-x0)//escala,
                    (x1-x0)//escala), dtype=np.byte)
 for i, rebanada in enumerate(rebanadas_radon):
+    # Preprocesar en frecuencia
     proc = filtro_hamming(rebanada)
+    # Reconstruir cada rebanada
     proc = inv_radon(proc)
+    # Aplicar umbral para hacer binario
     proc = proc > 0.5*np.max(proc)
     recons[i] = proc
 
+# Guardar la reconstrucción resultante
 np.save('recons_craneo3d.npy', recons)

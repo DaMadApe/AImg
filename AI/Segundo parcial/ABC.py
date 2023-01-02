@@ -1,11 +1,10 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 class ABC():
     def __init__(self, n_fuentes, x_min, x_max, dim):
         self.n_fuentes = n_fuentes
-        self.x_min = x_max
-        self.x_max = x_min
+        self.x_min = x_min
+        self.x_max = x_max
         self.dim = dim
 
         self.fuentes = np.random.uniform(x_min, x_max, (n_fuentes,dim))
@@ -29,12 +28,13 @@ class ABC():
         i = np.argmin(self.valores)
         if self.valores[i] < self.mejor_valor:
             self.mejor_valor = self.valores[i]
-            self.mejor_sol = self.fuentes[i]
+            self.mejor_sol = self.fuentes[i].copy()
 
-    def _probar_nueva_solucion(self, indice, nuevo_valor):
-        valor_busqueda = self.f(nuevo_valor)
+    def _probar_nueva_solucion(self, indice, nueva_fuente):
+        nueva_fuente = np.clip(nueva_fuente, self.x_min, self.x_max)
+        valor_busqueda = self.f(nueva_fuente)
         if valor_busqueda < self.valores[indice]:
-            self.fuentes[indice] = nuevo_valor
+            self.fuentes[indice] = nueva_fuente
             self.valores[indice] = valor_busqueda
             self.explotados[indice] = 0
         else:
@@ -49,13 +49,16 @@ class ABC():
             self._probar_nueva_solucion(i, busqueda[i])
 
     def _fase_observadoras(self):
-        probs = self.valores/self.valores.sum()
+        fitness = -self.valores + self.valores.max() + 1
+        probs = fitness/fitness.sum()
         for _ in range(self.n_fuentes):
             # Índice aleatorio en función de vector de probabilidades
             i = np.random.choice(np.arange(self.n_fuentes), p=probs)
+            # Índice de solución aleatoria
+            k = np.random.choice(np.arange(self.n_fuentes))
             # Nueva solución
-            phi = np.random.uniform(-1, 1, self.n_fuentes)
-            paso = phi*(self.fuentes[i] - np.random.choice(self.fuentes))
+            phi = np.random.uniform(-1, 1, self.dim)
+            paso = phi*(self.fuentes[i] - self.fuentes[k])
             busqueda = self.fuentes[i] + paso
             self._probar_nueva_solucion(i, busqueda)
 
@@ -84,5 +87,5 @@ if __name__ == '__main__':
         term2 = -x[0] * np.sin(np.sqrt(abs(x[0] - (x[1]+47))))
         return term1 + term2
 
-    colonia = ABC(n_fuentes=40, x_min=0, x_max=512, dim=2)
+    colonia = ABC(n_fuentes=12, x_min=0, x_max=512, dim=2)
     print(colonia.buscar(eggholder))

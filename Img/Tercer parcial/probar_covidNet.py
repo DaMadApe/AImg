@@ -26,11 +26,11 @@ model.eval()
 pred = model(img)
 real = ['Covid', 'Pneumonía', 'Sano'][label]
 
-print(f"""Predicción
-          Covid: {pred[0,0]}
-          Pneum: {pred[0,1]}
-          Sano: {pred[0,2]}
-          \nReal: {real}""")
+print(f"""Predicción:
+    Covid: {pred[0,0]}
+    Pneum: {pred[0,1]}
+    Sano: {pred[0,2]}
+    \n Real: {real}""")
 
 img_view = torch.permute(img[0], (1,2,0))
 plt.imshow(img_view, cmap='gray')

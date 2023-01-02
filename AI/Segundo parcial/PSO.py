@@ -1,7 +1,5 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import nevergrad as ng
-from nevergrad.optimization.optimizerlib import ConfiguredPSO
 
 
 class Particula:
@@ -20,9 +18,7 @@ class Particula:
         self.vel = nextVel
         self.pos += self.vel
         # Restringir a espacio de búsqueda
-        for i in range(self.dim):
-            self.pos[i] = max(self.pos[i], self.min_val)
-            self.pos[i] = min(self.pos[i], self.max_val)
+        self.pos = np.clip(self.pos, self.min_val, self.max_val)
 
     def newBest(self, newCost):
         self.bestPos = self.pos.copy()

@@ -2,6 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from skimage import data,transform
 
+"""
+Archivo con funciones asociadas a proyecciones de rayos paralelos
+"""
+
 def trans_radon(img, step=1):
     trans = []
     for theta in np.arange(0, 180, step):
@@ -17,7 +21,7 @@ def inv_radon(t_radon):
     for i, fila in enumerate(t_radon):
         proyec = fila * np.ones((ancho, 1))
         recons += transform.rotate(proyec, -i*ang)
-    return recons
+    return recons #/np.max(recons)
 
 def filtro_hamming(t_radon):
     """
@@ -38,17 +42,12 @@ if __name__ == '__main__':
 
     img = data.shepp_logan_phantom()
 
-    t_radon = trans_radon(img)
+    t_radon = trans_radon(img, step=1)
     suma = inv_radon(t_radon)
     filtrado = filtro_hamming(t_radon)
     final = inv_radon(filtrado)
 
-    plt.subplot(1,4,1)
-    plt.imshow(suma, cmap='gray')
-    plt.subplot(1,4,2)
-    plt.imshow(t_radon, cmap='gray')
-    plt.subplot(1,4,3)
-    plt.imshow(filtrado, cmap='gray')
-    plt.subplot(1,4,4)
-    plt.imshow(final, cmap='gray')
+    for i, img in enumerate([suma, t_radon, filtrado, final]):
+        plt.subplot(1,4,i+1)
+        plt.imshow(img, cmap='gray')
     plt.show()

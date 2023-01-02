@@ -7,7 +7,6 @@ from tqdm import tqdm
 
 from covidNet import *
 
-
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 # Parámetros de entrenamiento

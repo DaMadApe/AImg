@@ -1,54 +1,36 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from skimage import data,transform
+from skimage import data, transform, morphology, filters
 
 """
-Archivo con funciones asociadas a proyecciones de rayos en abanico
+Funciones asociadas a proyecciones de rayos en abanico
 """
-def trans_fan(imagen, pasos_alfa, pasos_beta):
-    h, w = imagen.shape
-    proyeccion = np.zeros((pasos_alfa, pasos_beta))
 
-    hm = h//2
-    beta_lim = np.arctan(h/(2*w))
-    p = 2*beta_lim/np.pi
-    pasos1 = int(round((1-p) * pasos_beta/2))
-    pasos2 = int(round(p * pasos_beta))
+def trans_fan(imagen, paso_alfa, paso_beta, D, ciclo=360):
+    """
+    Obtener la proyección en abanico de una imagen
 
-    angulos_alfa = np.linspace(0, 180, pasos_alfa) # alfa se usa en grados
-    angulos_beta1 = np.linspace(np.pi/2, beta_lim+np.pi/pasos_beta, pasos1)
-    angulos_beta2 = np.linspace(-beta_lim, beta_lim, pasos2)
-
-    for a, alfa in enumerate(angulos_alfa):
-        img_rot = transform.rotate(imagen, alfa)
-        # Primer y tercer sectores
-        for b, beta in enumerate(angulos_beta1):
-            y = np.arange(0, hm)
-            x = np.linspace(0, hm/np.tan(beta)-1, hm, dtype=int)
-            proyeccion[a, -b-1] = img_rot[hm+y, x].sum()
-            proyeccion[a, b] = img_rot[hm-y, x].sum()
-        # Segundo sector
-        for b, beta in enumerate(angulos_beta2):
-            x = np.arange(0, w)
-            y = np.linspace(0, w*np.tan(beta)-1, w, dtype=int) + hm
-            proyeccion[a, b+pasos1] = img_rot[y, x].sum()
-    return proyeccion
-
-def trans_fan2(imagen, pasos_alfa, pasos_beta, D):
-    h, w = imagen.shape
-    proyeccion = np.zeros((pasos_alfa, pasos_beta))
-
-    img_pad = np.pad(imagen, D)
+    paso_alfa: Desplazamiento angular de fuente (grados)
+    paso_beta: Separación angular de rayos (grados)
+    D: Distancia de la fuente
+    ciclo: Rotación total de la fuente
+    """
+    img_pad = np.pad(imagen, D) # Distancia de fuente se mete como padding
     h, w = img_pad.shape
     hm = h//2
-    beta_lim = np.arctan(h/(2*w))
+    beta_lim = np.arctan(h/(2*w)) # Ángulo de las esquinas contrarias
+    pasos_beta = int(2*beta_lim / (paso_beta * np.pi/180))
+    pasos_alfa = int(ciclo/paso_alfa)
 
-    angulos_alfa = np.linspace(0, 180, pasos_alfa) # alfa se usa en grados
+    proyeccion = np.zeros((pasos_alfa, pasos_beta))
+
+    angulos_alfa = np.arange(0, ciclo, paso_alfa) # alfa se usa en grados
     angulos_beta = np.linspace(-beta_lim, beta_lim, pasos_beta)
 
+    # Barrido de la fuente
     for a, alfa in enumerate(angulos_alfa):
         img_rot = transform.rotate(img_pad, alfa)
-        # Segundo sector
+        # Abanico
         for b, beta in enumerate(angulos_beta):
             x = np.arange(0, w)
             y = np.linspace(0, w*np.tan(beta)-1, w, dtype=int) + hm
@@ -56,11 +38,14 @@ def trans_fan2(imagen, pasos_alfa, pasos_beta, D):
     return proyeccion
 
 def fan2paralelo(img_fan, D):
+    """
+    Convertir proyecciones en abanico a proyecciones en paralelo
+    """
     a, b = img_fan.shape
-    paralelo = np.zeros((a+b, b))
+    paralelo = np.zeros((a+b, D))
     for i, proyeccion in enumerate(img_fan):
         for j, rayo in enumerate(proyeccion):
-            paralelo[i+j, int(b*np.sin(j))] += rayo
+            paralelo[i+j, int(D*np.sin(j))] = rayo
     return paralelo
 
 
@@ -69,8 +54,11 @@ if __name__ == '__main__':
 
     img = data.shepp_logan_phantom()
 
-    img_fan = trans_fan(img, 180, 180, 300)
-    img_paral = fan2paralelo(img_fan, img.shape[0])
+    img_fan = trans_fan(img, 1, 1, 300)
+    img_paral = fan2paralelo(img_fan, 200)
+    #img_paral /= img_paral.max()
+    #img_paral = filters.rank.mean(img_paral, morphology.disk(30))
+    img_paral = filtro_hamming(img_paral)
     recon = inv_radon(img_paral)
 
     imgs = [img, img_fan, img_paral, recon]
